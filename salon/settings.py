@@ -66,11 +66,20 @@ DEFAULT_DB_URL = f"sqlite:///{BASE_DIR / 'db.sqlite3'}"
 # BASE DE DATOS (Render/Local)
 # ==========================
 # Producción (Render) usa DATABASE_URL; local cae a SQLite.
+# === Base de datos local por defecto (SQLite) ===
+DATABASES = {
+    "default": {
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": os.path.join(BASE_DIR, "db.sqlite3"),
+    }
+}
+
+# === Si hay DATABASE_URL (como en Render o manualmente con set) ===
+
 if os.getenv("DATABASE_URL"):
     import dj_database_url
-    DATABASES = {
-        "default": dj_database_url.config(conn_max_age=600, ssl_require=True)
-    }
+    DATABASES["default"] = dj_database_url.config(conn_max_age=600, ssl_require=False)
+
 else:
     DATABASES = {
         "default": {
