@@ -17,7 +17,7 @@ load_dotenv(BASE_DIR / ".env")
 # CONFIGURACIONES BÁSICAS
 # -----------------------------------------------
 SECRET_KEY = os.getenv("SECRET_KEY", "clave_por_defecto_insegura")
-DEBUG = os.getenv("DEBUG", "False") == "True"
+DEBUG = True
 
 ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
 CSRF_TRUSTED_ORIGINS = os.getenv("CSRF_TRUSTED_ORIGINS", "http://localhost").split(",")
