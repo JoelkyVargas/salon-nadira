@@ -17,7 +17,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'salon.citas.apps.CitasConfig',  # tu app
+    'citas.apps.CitasConfig',  # tu app
 ]
 
 MIDDLEWARE = [
@@ -30,7 +30,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-ROOT_URLCONF = 'salon_agenda.urls'  # ✅ corregido
+ROOT_URLCONF = 'salon.urls'  # ✅ corregido
 
 TEMPLATES = [
     {
@@ -48,7 +48,7 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'salon_agenda.wsgi.application'  # ✅ corregido
+WSGI_APPLICATION = 'salon.wsgi.application'  # ✅ corregido
 
 DATABASES = {
     'default': {
