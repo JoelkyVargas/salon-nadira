@@ -1,0 +1,57 @@
+/* static/admin/custom.css */
+
+/* Colores base */
+:root {
+  --admin-pink: #ff8da1;        /* rosa principal */
+  --admin-pink-dark: #ff6b8b;   /* hover */
+  --admin-grey: #f7f7fb;
+}
+
+/* Header / Branding */
+#header {
+  background: var(--admin-pink);
+}
+#header a:link, #header a:visited {
+  color: #fff;
+}
+
+/* Botones */
+.button, input[type=submit].default, .submit-row input.default {
+  background: var(--admin-pink);
+  border-color: var(--admin-pink);
+  color: #fff;
+}
+.button:hover, input[type=submit].default:hover, .submit-row input.default:hover {
+  background: var(--admin-pink-dark);
+  border-color: var(--admin-pink-dark);
+}
+
+/* Enlaces acción */
+a.addlink, a.changelink, a.deletelink, .object-tools a {
+  background: var(--admin-pink);
+  color: #fff !important;
+  border-radius: 6px;
+  padding: 6px 10px;
+}
+a.addlink:hover, .object-tools a:hover {
+  background: var(--admin-pink-dark);
+}
+
+/* Módulos del dashboard */
+.dashboard-modules .module caption {
+  background: var(--admin-pink);
+  color: #fff;
+  font-weight: 700;
+}
+.dashboard-modules .module {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 8px 22px rgba(0,0,0,0.06);
+  margin-bottom: 18px;
+}
+
+/* Tabla change_list */
+#changelist-form .results th, #changelist-form .results td {
+  vertical-align: middle;
+}
+

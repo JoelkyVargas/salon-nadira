@@ -1,0 +1,44 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block title %}Calendario de Citas | {{ site_title }}{% endblock %}
+
+{% block content %}
+  <div id="content-main">
+    <h1 style="margin-bottom:12px;">Calendario de Citas</h1>
+    <p class="help">
+      Las citas y bloqueos se cargan desde <code>/api/appointments/</code>.
+      (Los bloqueos se muestran como franjas grises de fondo).
+    </p>
+    <div id="calendar" style="background:#fff; padding:16px; border-radius:8px;"></div>
+  </div>
+
+  <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      const calendarEl = document.getElementById('calendar');
+      const calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'dayGridMonth',
+        locale: 'es',
+        height: 'auto',
+        headerToolbar: {
+          left: 'prev,next today',
+          center: 'title',
+          right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek'
+        },
+        buttonText: { today:'Hoy', month:'Mes', week:'Semana', day:'Día', list:'Lista' },
+        nowIndicator: true,
+        events: '/api/appointments/',
+        eventTimeFormat: { hour: '2-digit', minute: '2-digit', hour12: false },
+        eventDidMount: function(info) {
+          const start = info.event.start ? info.event.start.toLocaleString() : '';
+          info.el.title = `${info.event.title} | ${start}`;
+        }
+      });
+      calendar.render();
+    });
+  </script>
+{% endblock %}
+
+

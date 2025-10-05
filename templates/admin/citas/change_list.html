@@ -1,0 +1,8 @@
+{% extends "admin/change_list.html" %}
+{% block object-tools-items %}
+  {{ block.super }}
+  <li>
+    <a class="addlink" href="{% url 'admin:citas_appointment_calendar' %}">Ver calendario</a>
+  </li>
+{% endblock %}
+

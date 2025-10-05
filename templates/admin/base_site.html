@@ -1,0 +1,17 @@
+{# templates/admin/base_site.html #}
+{% extends "admin/base.html" %}
+{% load static %}
+{% block title %}Nadira Fashion Salon{% endblock %}
+
+{% block extrastyle %}
+  {{ block.super }}
+  <link rel="stylesheet" href="{% static 'admin/custom.css' %}">
+{% endblock %}
+
+{% block branding %}
+  <h1 id="site-name">
+    <a href="{% url 'admin:index' %}">Nadira Fashion Salon</a>
+  </h1>
+{% endblock %}
+
+{% block nav-global %}{% endblock %}

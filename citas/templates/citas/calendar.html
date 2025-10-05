@@ -1,0 +1,55 @@
+<!-- salon/citas/templates/citas/calendar.html -->
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Agenda del Salón</title>
+  <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css" rel="stylesheet">
+  <style>
+    body { background:#f7f7fb; font-family: system-ui, Arial, sans-serif; }
+    .wrap { max-width:1100px; margin:40px auto; background:#fff; padding:20px;
+            border-radius:14px; box-shadow:0 8px 22px rgba(0,0,0,0.08); }
+    h1 { text-align:center; color:#ff8da1; font-weight:800; margin-bottom:20px; white-space:nowrap; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Agenda del Salón</h1>
+    <div id="calendar"></div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      var calendarEl = document.getElementById('calendar');
+
+      var calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'dayGridMonth',
+        locale: 'es',
+        height: 'auto',
+        headerToolbar: {
+          left: 'prev,next today',
+          center: 'title',
+          right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek'
+        },
+        buttonText: { today: 'Hoy', month: 'Mes', week: 'Semana', day: 'Día', list: 'Lista' },
+        nowIndicator: true,
+        events: '/api/appointments/',
+        eventTimeFormat: { hour: '2-digit', minute: '2-digit', hour12: false },
+        eventDidMount: function(info) {
+          const start = info.event.start ? info.event.start.toLocaleString() : '';
+          info.el.title = info.event.title + ' | ' + start;
+        },
+        eventClick: function(info) {
+          const e = info.event;
+          alert(`${e.title}\nDesde: ${e.start?.toLocaleString() || ''}\nHasta: ${e.end?.toLocaleString() || ''}`);
+        }
+      });
+
+      calendar.render();
+    });
+  </script>
+</body>
+</html>

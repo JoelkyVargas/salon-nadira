@@ -1,0 +1,61 @@
+{# templates/admin/index.html #}
+{% extends "admin/base_site.html" %}
+{% load i18n static %}
+
+{% block content %}
+<div id="content-main" class="dashboard-modules">
+  <!-- Agenda -->
+  <div class="app-agenda module">
+    <table>
+      <caption>Agenda</caption>
+      <tbody>
+        <tr class="model-citas">
+          <th scope="row"><a href="{% url 'admin:citas_appointment_changelist' %}">Citas</a></th>
+          <td class="actionlist">
+            <a href="{% url 'admin:citas_appointment_changelist' %}" class="action">Ver lista</a> |
+            <a href="{% url 'admin:citas_appointment_calendar' %}" class="action">Ver calendario</a>
+          </td>
+        </tr>
+        <tr class="model-bloqueos">
+          <th scope="row"><a href="{% url 'admin:citas_blockedslot_changelist' %}">Auto bloqueos</a></th>
+          <td class="actionlist">
+            <a href="{% url 'admin:citas_blockedslot_add' %}" class="addlink">Añadir</a>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Servicios -->
+  <div class="app-servicios module">
+    <table>
+      <caption>Servicios</caption>
+      <tbody>
+        <tr class="model-servicio">
+          <th scope="row"><a href="{% url 'admin:citas_service_changelist' %}">Servicios</a></th>
+          <td class="actionlist">
+            <a href="{% url 'admin:citas_service_add' %}" class="addlink">Añadir</a>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Autenticación y autorización (abajo del todo) -->
+  <div class="app-auth module">
+    <table>
+      <caption>Autenticación y autorización</caption>
+      <tbody>
+        <tr>
+          <th scope="row"><a href="{% url 'admin:auth_user_changelist' %}">Usuarios</a></th>
+          <td class="actionlist"><a href="{% url 'admin:auth_user_add' %}" class="addlink">Añadir</a></td>
+        </tr>
+        <tr>
+          <th scope="row"><a href="{% url 'admin:auth_group_changelist' %}">Grupos</a></th>
+          <td class="actionlist"><a href="{% url 'admin:auth_group_add' %}" class="addlink">Añadir</a></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

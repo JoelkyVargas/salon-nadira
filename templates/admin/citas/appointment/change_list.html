@@ -1,0 +1,17 @@
+{# templates/admin/citas/appointment/change_list.html #}
+{% extends "admin/change_list.html" %}
+{% load static %}
+
+{% block extrastyle %}
+  {{ block.super }}
+  <link rel="stylesheet" href="{% static 'admin/custom.css' %}">
+{% endblock %}
+
+{% block object-tools-items %}
+  {{ block.super }}
+  <li>
+    <a href="{% url 'admin:citas_appointment_calendar' %}" class="button">
+      Ver calendario
+    </a>
+  </li>
+{% endblock %}
