@@ -1,115 +1,74 @@
 import os
 from pathlib import Path
-from dotenv import load_dotenv
-import dj_database_url
 
-# -----------------------------------------------
-# BASE DIR
-# -----------------------------------------------
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# -----------------------------------------------
-# CARGA VARIABLES .ENV
-# -----------------------------------------------
-load_dotenv(BASE_DIR / ".env")
+SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret-not-for-prod")
 
-# -----------------------------------------------
-# CONFIGURACIONES BÁSICAS
-# -----------------------------------------------
-SECRET_KEY = os.getenv("SECRET_KEY", "clave_por_defecto_insegura")
-DEBUG = True
+DEBUG = os.getenv("DEBUG", "False").lower() == "true"
 
 ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
 CSRF_TRUSTED_ORIGINS = os.getenv("CSRF_TRUSTED_ORIGINS", "http://localhost").split(",")
 
-# -----------------------------------------------
-# APLICACIONES INSTALADAS
-# -----------------------------------------------
 INSTALLED_APPS = [
-    'django.contrib.admin',
-    'django.contrib.auth',
-    'django.contrib.contenttypes',
-    'django.contrib.sessions',
-    'django.contrib.messages',
-    'django.contrib.staticfiles',
-    'citas',
-    # agrega aquí tus apps personalizadas, ej:
-    # 'reservas',
+    "django.contrib.admin",
+    "django.contrib.auth",
+    "django.contrib.contenttypes",
+    "django.contrib.sessions",
+    "django.contrib.messages",
+    "django.contrib.staticfiles",
+    "citas",
 ]
 
-# -----------------------------------------------
-# MIDDLEWARE
-# -----------------------------------------------
 MIDDLEWARE = [
-    'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',  # para servir estáticos en producción
-    'django.contrib.sessions.middleware.SessionMiddleware',
-    'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
-    'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'django.contrib.messages.middleware.MessageMiddleware',
-    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
+    "django.contrib.sessions.middleware.SessionMiddleware",
+    "django.middleware.common.CommonMiddleware",
+    "django.middleware.csrf.CsrfViewMiddleware",
+    "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "django.contrib.messages.middleware.MessageMiddleware",
+    "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
-# -----------------------------------------------
-# URLS Y WSGI
-# -----------------------------------------------
-ROOT_URLCONF = 'salon.urls'
-WSGI_APPLICATION = 'salon.wsgi.application'
+ROOT_URLCONF = "salon.urls"
 
-# -----------------------------------------------
-# BASE DE DATOS
-# -----------------------------------------------
-DEFAULT_DB_URL = f"sqlite:///{BASE_DIR / 'db.sqlite3'}"
-
-# ==========================
-# BASE DE DATOS (Render/Local)
-# ==========================
-# Producción (Render) usa DATABASE_URL; local cae a SQLite.
-# === Base de datos local por defecto (SQLite) ===
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": os.path.join(BASE_DIR, "db.sqlite3"),
-    }
-}
-
-# === Si hay DATABASE_URL (como en Render o manualmente con set) ===
-
-if os.getenv("DATABASE_URL"):
-    import dj_database_url
-    DATABASES["default"] = dj_database_url.config(conn_max_age=600, ssl_require=False)
-
-else:
-    DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.sqlite3",
-            "NAME": BASE_DIR / "db.sqlite3",
-        }
-    }
-
-
-# -----------------------------------------------
-# CONFIGURACIÓN DE TEMPLATES
-# -----------------------------------------------
 TEMPLATES = [
     {
-        'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / "templates"],
-        'APP_DIRS': True,
-        'OPTIONS': {
-            'context_processors': [
-                'django.template.context_processors.debug',
-                'django.template.context_processors.request',
-                'django.contrib.auth.context_processors.auth',
-                'django.contrib.messages.context_processors.messages',
+        "BACKEND": "django.template.backends.django.DjangoTemplates",
+        "DIRS": [BASE_DIR / "templates"],
+        "APP_DIRS": True,
+        "OPTIONS": {
+            "context_processors": [
+                "django.template.context_processors.debug",
+                "django.template.context_processors.request",
+                "django.contrib.auth.context_processors.auth",
+                "django.contrib.messages.context_processors.messages",
             ],
         },
     },
 ]
 
-# -----------------------------------------------
-# CONFIGURACIÓN DE ARCHIVOS ESTÁTICOS
-# -----------------------------------------------
-STATIC_URL = '/static/'
-STATIC_ROOT = BASE_DIR
+WSGI_APPLICATION = "salon.wsgi.application"
+
+# ---- DB: SQLite por defecto; si hay DATABASE_URL, usarla (Render) ----
+DATABASES = {
+    "default": {
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": str(BASE_DIR / "db.sqlite3"),
+    }
+}
+if os.getenv("DATABASE_URL"):
+    import dj_database_url
+    DATABASES["default"] = dj_database_url.parse(os.getenv("DATABASE_URL"))
+
+# ---- Static/Media ----
+STATIC_URL = "/static/"
+STATIC_ROOT = BASE_DIR / "staticfiles"
+STATICFILES_DIRS = [BASE_DIR / "static"]
+DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+# WhiteNoise para servir estáticos en Render
+STORAGES = {
+    "staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"},
+}
