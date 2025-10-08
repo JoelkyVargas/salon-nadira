@@ -49,14 +49,15 @@
 
             <div class="mb-3">
               <label class="form-label">Fecha</label>
-              {{ form.date }}  {# debe tener id="date-input" desde forms.py #}
+              {{ form.date }}  {# tiene id="date-input" desde forms.py #}
               {% if form.date.errors %}<div class="text-danger small">{{ form.date.errors.0 }}</div>{% endif %}
             </div>
 
             <div class="mb-3">
               <label class="form-label">Hora</label>
-              {{ form.time }}  {# debe tener id="time-select" desde forms.py #}
+              {{ form.time }}  {# tiene id="time-select" desde forms.py #}
               {% if form.time.errors %}<div class="text-danger small">{{ form.time.errors.0 }}</div>{% endif %}
+              <small class="text-muted d-block mt-1" id="times-help">Selecciona servicio y fecha para ver horarios.</small>
             </div>
 
             <div class="d-grid">
@@ -65,7 +66,7 @@
           </form>
 
           <div class="mt-3" id="no-times" style="display:none;">
-            <div class="alert alert-warning mb-0">No hay horarios disponibles para la fecha seleccionada.</div>
+            <div class="alert alert-warning mb-0">No hay horarios disponibles para la selección.</div>
           </div>
 
         </div>
@@ -74,25 +75,32 @@
   </div>
 
   <script>
-    // Rellena el <select id="time-select"> con horas disponibles al cambiar la fecha
+    // Campos (IDs por defecto de Django y los del widget):
+    // - Servicio: id="id_service"
+    // - Fecha:    id="date-input"
+    // - Hora:     id="time-select"
     document.addEventListener('DOMContentLoaded', function () {
-      const dateInput = document.getElementById('date-input');
+      const serviceSel = document.getElementById('id_service');
+      const dateInput  = document.getElementById('date-input');
       const timeSelect = document.getElementById('time-select');
-      const noTimes = document.getElementById('no-times');
+      const noTimes    = document.getElementById('no-times');
+      const helpTxt    = document.getElementById('times-help');
+
+      function clearAndSetPlaceholder(text){
+        timeSelect.innerHTML = '';
+        const opt = document.createElement('option');
+        opt.value = "";
+        opt.textContent = text;
+        timeSelect.appendChild(opt);
+      }
 
       function setOptions(options) {
-        // Vaciar opciones
-        while (timeSelect.firstChild) timeSelect.removeChild(timeSelect.firstChild);
-
-        if (!options || options.length === 0) {
-          const opt = document.createElement('option');
-          opt.value = "";
-          opt.textContent = "— No hay horarios disponibles —";
-          timeSelect.appendChild(opt);
+        timeSelect.innerHTML = '';
+        if (!options || !options.length) {
+          clearAndSetPlaceholder('— No hay horarios disponibles —');
           noTimes.style.display = "block";
           return;
         }
-
         noTimes.style.display = "none";
         const placeholder = document.createElement('option');
         placeholder.value = "";
@@ -107,28 +115,37 @@
         });
       }
 
-      async function fetchTimes(dateStr) {
-        if (!dateStr) {
-          setOptions([]);
+      async function fetchTimes() {
+        const svc  = serviceSel?.value;
+        const date = dateInput?.value;
+        if (!svc || !date) {
+          clearAndSetPlaceholder('— Selecciona servicio y fecha —');
+          helpTxt.textContent = 'Selecciona servicio y fecha para ver horarios.';
+          noTimes.style.display = "none";
           return;
         }
         try {
-          const res = await fetch(`/api/available-times/?date=${encodeURIComponent(dateStr)}`);
+          const url = `/api/available-times/?date=${encodeURIComponent(date)}&service=${encodeURIComponent(svc)}`;
+          const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
           if (!res.ok) throw new Error('HTTP ' + res.status);
           const data = await res.json();
           setOptions(data.times || []);
+          helpTxt.textContent = (data.times && data.times.length)
+            ? 'Selecciona una hora disponible.'
+            : 'No hay horarios disponibles para esa fecha y servicio.';
         } catch (e) {
           console.error(e);
-          setOptions([]);
+          clearAndSetPlaceholder('— Error cargando horarios —');
+          helpTxt.textContent = 'Error cargando horarios. Intenta de nuevo.';
+          noTimes.style.display = "block";
         }
       }
 
-      if (dateInput) {
-        // Cargar horas si ya viene una fecha marcada (p.ej., tras error de validación)
-        if (dateInput.value) fetchTimes(dateInput.value);
-        // Reaccionar a cambios
-        dateInput.addEventListener('change', e => fetchTimes(e.target.value));
-      }
+      serviceSel?.addEventListener('change', fetchTimes);
+      dateInput?.addEventListener('change', fetchTimes);
+
+      // Pre-carga si ya hay valores (por re-render tras error de validación)
+      if (serviceSel?.value && dateInput?.value) fetchTimes();
     });
   </script>
 
