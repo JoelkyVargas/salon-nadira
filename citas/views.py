@@ -20,18 +20,15 @@ def _all_times():
 def _time_in_range(t, start, end):
     return (start is not None and end is not None and start <= t < end)
 
-def _strike(text: str) -> str:
-    # Convierte "12:00" en "1̶2̶:̶0̶0̶"
-    return "".join(ch + "\u0336" for ch in text)
-
-def _times_and_unavailable(date_str):
+def _available_times_for_date(date_str):
     """
-    Devuelve (todas_las_horas, set_no_disponibles) para una fecha YYYY-MM-DD
-    considerando citas (con su duración) y bloqueos (día completo, rango, puntual).
+    Devuelve SOLO horas libres (strings 'HH:MM'), excluyendo:
+    - citas existentes (considerando su duración)
+    - bloqueos (día completo, por rango y puntuales)
     """
     all_slots = _all_times()
     if not date_str:
-        return all_slots, set()
+        return []
 
     # Citas -> rangos ocupados
     appts = Appointment.objects.select_related("service").filter(date=date_str)
@@ -44,51 +41,50 @@ def _times_and_unavailable(date_str):
 
     # Bloqueos
     blocked_qs = BlockedSlot.objects.filter(date=date_str)
+    # Día completo
     if any(not b.start_time and not b.end_time and not b.time for b in blocked_qs):
-        return all_slots, set(all_slots)  # día completo -> todo no disponible
+        return []
 
     blocked_exact = {b.time.strftime("%H:%M") for b in blocked_qs if b.time}
     blocked_ranges = [(b.start_time, b.end_time) for b in blocked_qs if b.start_time and b.end_time]
 
-    unavailable = set()
+    free = []
     for s in all_slots:
+        if s in blocked_exact:
+            continue
         hh, mm = map(int, s.split(":"))
         t_obj = dtime(hh, mm)
-        if s in blocked_exact:
-            unavailable.add(s); continue
         if any(_time_in_range(t_obj, st, et) for (st, et) in blocked_ranges):
-            unavailable.add(s); continue
+            continue
         if any(_time_in_range(t_obj, st, et) for (st, et) in busy_ranges):
-            unavailable.add(s); continue
-
-    return all_slots, unavailable
+            continue
+        free.append(s)
+    return free
 
 # -------------------------------
 # Formulario público
 # -------------------------------
 def reservar_cita(request):
+    """
+    Renderiza el formulario y guarda si es válido.
+    - El <select> 'time' muestra SOLO horas disponibles según fecha elegida.
+    """
     success = None
     selected_date = request.POST.get("date") if request.method == "POST" else None
-    all_times, unavailable = _times_and_unavailable(selected_date) if selected_date else (_all_times(), set())
+    available_times = _available_times_for_date(selected_date) if selected_date else None
 
-    # Opciones para el <select> (texto tachado y disabled)
-    time_options = [
-        {"value": t, "label": (_strike(t) if t in unavailable else t), "disabled": (t in unavailable)}
-        for t in all_times
-    ]
-
-    form = AppointmentForm(request.POST or None)
+    # Pasamos SOLO horas disponibles al form
+    form = AppointmentForm(request.POST or None, available_times=available_times)
 
     if request.method == "POST" and form.is_valid():
         form.save()
         success = "¡Cita reservada con éxito!"
-        form = AppointmentForm()
+        # Reset del form: sin fecha -> placeholder en el select
+        form = AppointmentForm(available_times=None)
 
     return render(request, "citas/appointment_form.html", {
         "form": form,
         "success": success,
-        "selected_date": selected_date,
-        "time_options": time_options,
     })
 
 # -------------------------------
@@ -145,8 +141,7 @@ def appointments_json(request):
 # -------------------------------
 def available_times_json(request):
     date_str = request.GET.get("date")
-    all_times, unavailable = _times_and_unavailable(date_str) if date_str else (_all_times(), set())
-    free = [t for t in all_times if t not in unavailable]
+    free = _available_times_for_date(date_str) if date_str else []
     return JsonResponse({"times": free})
 
 # -------------------------------
