@@ -42,6 +42,7 @@
             <div class="mb-3">
               <label class="form-label">Hora</label>
               {{ form.time }}
+              <small class="text-muted d-block mt-1" id="times-help">Selecciona servicio y fecha para ver horarios.</small>
             </div>
 
             <div class="d-grid">
@@ -53,7 +54,63 @@
       </div>
     </div>
   </div>
+
+  <script>
+    // IDs generados por Django:
+    // - servicio: id="id_service"
+    // - fecha: id="date-input" (lo definimos en el widget)
+    // - hora: id="time-select" (lo definimos en el widget)
+
+    const serviceSel = document.getElementById('id_service');
+    const dateInput  = document.getElementById('date-input');
+    const timeSel    = document.getElementById('time-select');
+    const helpTxt    = document.getElementById('times-help');
+
+    function setOptions(opts) {
+      timeSel.innerHTML = '';
+      if (!opts || !opts.length) {
+        const o = document.createElement('option');
+        o.value = '';
+        o.textContent = '— No hay horarios disponibles —';
+        timeSel.appendChild(o);
+        return;
+      }
+      for (const t of opts) {
+        const o = document.createElement('option');
+        o.value = t;
+        o.textContent = t;
+        timeSel.appendChild(o);
+      }
+    }
+
+    async function updateTimes() {
+      const svc = serviceSel.value;
+      const date = dateInput.value;
+      if (!svc || !date) {
+        setOptions(null);
+        helpTxt.textContent = 'Selecciona servicio y fecha para ver horarios.';
+        return;
+      }
+      try {
+        const url = `/api/available-times/?date=${encodeURIComponent(date)}&service=${encodeURIComponent(svc)}`;
+        const resp = await fetch(url, { headers: { 'Accept': 'application/json' } });
+        const data = await resp.json();
+        setOptions(data.times || []);
+        helpTxt.textContent = (data.times && data.times.length)
+          ? 'Selecciona una hora disponible.'
+          : 'No hay horarios disponibles para esa fecha y servicio.';
+      } catch (e) {
+        setOptions(null);
+        helpTxt.textContent = 'Error cargando horarios. Intenta de nuevo.';
+      }
+    }
+
+    serviceSel?.addEventListener('change', updateTimes);
+    dateInput?.addEventListener('change', updateTimes);
+    // Inicializa si ya hay valores precargados (ej. post con errores)
+    if (serviceSel?.value && dateInput?.value) { updateTimes(); }
+  </script>
+
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
-
