@@ -5,6 +5,7 @@ from django.shortcuts import render
 
 from .forms import AppointmentForm
 from .models import Appointment, BlockedSlot, Service
+from .whatsapp import send_booking_notifications  # ← NUEVO
 
 # 🕘 Configuración de horario laboral
 OPEN_HOUR = 8
@@ -25,8 +26,8 @@ def _available_times_for_date(date_str, service_duration=None):
     Devuelve SOLO horas libres (strings 'HH:MM') para una fecha YYYY-MM-DD,
     excluyendo:
       - Citas existentes (considerando su duración)
-      - Bloqueos por día completo, por rango (start_time/end_time) y puntuales (time)
-      - Y, si viene service_duration, horas que no alcanzan a terminar antes del cierre
+      - Bloqueos por día completo, rango y puntuales
+      - Y, si viene service_duration, horas que no caben antes del cierre
     """
     all_slots = _all_times()
     if not date_str:
@@ -69,7 +70,7 @@ def _available_times_for_date(date_str, service_duration=None):
         if any(_time_in_range(t_obj, st, et) for (st, et) in busy_ranges):
             continue
 
-        # Si se conoce duración del servicio elegido, debe caber antes del cierre
+        # Debe caber antes del cierre si sabemos la duración del servicio elegido
         if service_duration:
             start_dt = datetime.combine(date_obj, t_obj)
             end_dt = start_dt + timedelta(minutes=service_duration)
@@ -86,6 +87,7 @@ def reservar_cita(request):
     Renderiza el formulario y guarda si es válido.
     - El <select> de 'time' se llena por JS consultando /api/available-times/
       (y en POST conservamos compatibilidad server-side).
+    - Tras guardar, enviamos WhatsApp a propietaria y cliente.
     """
     success = None
 
@@ -102,8 +104,14 @@ def reservar_cita(request):
     form = AppointmentForm(request.POST or None, available_times=available_times)
 
     if request.method == "POST" and form.is_valid():
-        form.save()
+        ap = form.save()
         success = "¡Cita reservada con éxito!"
+        # === ENVÍO WHATSAPP INMEDIATO ===
+        try:
+            send_booking_notifications(ap)
+        except Exception as e:
+            print("WHATSAPP send error:", e)
+        # Reset del form
         form = AppointmentForm(available_times=None)
 
     return render(

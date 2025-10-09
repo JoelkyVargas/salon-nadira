@@ -43,19 +43,19 @@
 
             <div class="mb-3">
               <label class="form-label">Servicio</label>
-              {{ form.service }}
+              {{ form.service }} {# id="id_service" #}
               {% if form.service.errors %}<div class="text-danger small">{{ form.service.errors.0 }}</div>{% endif %}
             </div>
 
             <div class="mb-3">
               <label class="form-label">Fecha</label>
-              {{ form.date }}  {# tiene id="date-input" desde forms.py #}
+              {{ form.date }}  {# id="date-input" #}
               {% if form.date.errors %}<div class="text-danger small">{{ form.date.errors.0 }}</div>{% endif %}
             </div>
 
             <div class="mb-3">
               <label class="form-label">Hora</label>
-              {{ form.time }}  {# tiene id="time-select" desde forms.py #}
+              {{ form.time }}  {# id="time-select" #}
               {% if form.time.errors %}<div class="text-danger small">{{ form.time.errors.0 }}</div>{% endif %}
               <small class="text-muted d-block mt-1" id="times-help">Selecciona servicio y fecha para ver horarios.</small>
             </div>
@@ -75,10 +75,10 @@
   </div>
 
   <script>
-    // Campos (IDs por defecto de Django y los del widget):
-    // - Servicio: id="id_service"
-    // - Fecha:    id="date-input"
-    // - Hora:     id="time-select"
+    // IDs:
+    // servicio:  id="id_service"
+    // fecha:     id="date-input"
+    // hora:      id="time-select"
     document.addEventListener('DOMContentLoaded', function () {
       const serviceSel = document.getElementById('id_service');
       const dateInput  = document.getElementById('date-input');
@@ -144,7 +144,7 @@
       serviceSel?.addEventListener('change', fetchTimes);
       dateInput?.addEventListener('change', fetchTimes);
 
-      // Pre-carga si ya hay valores (por re-render tras error de validación)
+      // Precargar si ya hay valores (p.ej., tras error de validación)
       if (serviceSel?.value && dateInput?.value) fetchTimes();
     });
   </script>
