@@ -1,86 +1,102 @@
 # citas/whatsapp.py
-import os, re
-from datetime import datetime
-from django.utils.timezone import get_current_timezone
+import os, re, json
+from twilio.rest import Client
 
+# ====== ENV obligatorias ======
 ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID")
-AUTH_TOKEN = os.getenv("TWILIO_AUTH_TOKEN")
-WA_FROM = os.getenv("TWILIO_WHATSAPP_FROM")
-OWNER_WA = os.getenv("OWNER_WHATSAPP")
-SALON_NAME = os.getenv("SALON_NAME", "Nadira Fashion Salon")
-_tz = get_current_timezone()
+AUTH_TOKEN  = os.getenv("TWILIO_AUTH_TOKEN")
+MS_SID      = os.getenv("TWILIO_MESSAGING_SERVICE_SID")  # MGxxxxxxxxxxxx
+CONF_SID    = os.getenv("TWILIO_CONFIRMATION_CONTENT_SID")  # Hxxxxxxxxxxxx
+REM_SID     = os.getenv("TWILIO_REMINDER_CONTENT_SID")      # Hxxxxxxxxxxxx
+OWNER_WA    = os.getenv("OWNER_WHATSAPP")  # whatsapp:+50685742863
+SALON_NAME  = os.getenv("SALON_NAME", "Nadira Fashion Salon")
 
-def _safe_client():
-    """Crea el cliente Twilio solo si hay credenciales y librería instalada."""
-    if not (ACCOUNT_SID and AUTH_TOKEN and WA_FROM):
-        return None
-    try:
-        from twilio.rest import Client  # import perezoso
-        return Client(ACCOUNT_SID, AUTH_TOKEN)
-    except Exception:
-        return None
+client = Client(ACCOUNT_SID, AUTH_TOKEN)
 
-def _to_wa(number: str, default_cc="+506"):
-    if not number:
+# ====== Utils ======
+def _to_wa(num: str, cc="+506"):
+    """
+    Convierte un número crudo a formato WhatsApp E.164:
+    - "85742863" -> "whatsapp:+50685742863"
+    - "+50685742863" -> "whatsapp:+50685742863"
+    """
+    if not num:
         return None
-    digits = re.sub(r"\D", "", number)
+    digits = re.sub(r"\D", "", str(num))
     if not digits:
         return None
-    if digits.startswith("00"):
-        digits = digits[2:]
+    if len(digits) == 8:  # CR sin prefijo
+        digits = cc + digits
     if not digits.startswith("+"):
-        if len(digits) == 8:
-            digits = f"{default_cc}{digits}"
-        else:
-            digits = f"+{digits}"
+        digits = "+" + digits
     return f"whatsapp:{digits}"
 
-def _send(to_wa: str, body: str):
-    client = _safe_client()
-    if not (client and to_wa):
+def _send_template(to_wa: str, content_sid: str, vars_dict: dict) -> bool:
+    """Envía usando Messaging Service + Content Template (WhatsApp)."""
+    if not (to_wa and MS_SID and content_sid):
         return False
     try:
-        client.messages.create(from_=WA_FROM, to=to_wa, body=body)
+        client.messages.create(
+            messaging_service_sid=MS_SID,
+            to=to_wa,
+            content_sid=content_sid,
+            content_variables=json.dumps(vars_dict or {})
+        )
         return True
-    except Exception:
+    except Exception as e:
+        print("TWILIO ERROR:", e)
         return False
 
 def _fmt_date(d): return d.strftime("%d/%m/%Y")
 def _fmt_time(t): return t.strftime("%H:%M")
 
+# ====== Públicos ======
 def send_booking_notifications(appointment):
-    svc = getattr(appointment, "service", None)
-    service_name = getattr(svc, "name", "Servicio")
-    dstr = _fmt_date(appointment.date)
-    tstr = _fmt_time(appointment.time)
+    """
+    Confirmación inmediata:
+    - Cliente: template de confirmación (CONF_SID)
+    - Dueña:   template de confirmación (CONF_SID)
+    """
+    svc_name = getattr(getattr(appointment, "service", None), "name", "Servicio")
+    d = _fmt_date(appointment.date)
+    t = _fmt_time(appointment.time)
+
+    vars_payload = {
+        "1": appointment.customer_name,  # {{1}} Nombre
+        "2": svc_name,                   # {{2}} Servicio
+        "3": d,                          # {{3}} Fecha
+        "4": t,                          # {{4}} Hora
+        "5": SALON_NAME                  # {{5}} Salón
+    }
 
     to_client = _to_wa(getattr(appointment, "customer_phone", ""))
-    if to_client:
-        _send(to_client,
-              f"¡Hola {appointment.customer_name}! Tu cita en {SALON_NAME} fue confirmada.\n"
-              f"• {service_name}\n• {dstr} a las {tstr}\n\n"
-              f"Si necesitás cambiarla, respondé a este WhatsApp.")
+    if to_client and CONF_SID:
+        _send_template(to_client, CONF_SID, vars_payload)
 
-    if OWNER_WA:
-        _send(OWNER_WA,
-              f"📥 Nueva reserva en {SALON_NAME}\n"
-              f"{appointment.customer_name} ({appointment.customer_phone})\n"
-              f"{service_name} – {dstr} {tstr}")
+    if OWNER_WA and CONF_SID:
+        _send_template(OWNER_WA, CONF_SID, vars_payload)
 
 def send_reminder_now(appointment):
-    svc = getattr(appointment, "service", None)
-    service_name = getattr(svc, "name", "Servicio")
-    dstr = _fmt_date(appointment.date)
-    tstr = _fmt_time(appointment.time)
+    """
+    Recordatorio (p. ej., por cron diario):
+    - Cliente: template de recordatorio (REM_SID)
+    - Dueña:   template de recordatorio (REM_SID)
+    """
+    svc_name = getattr(getattr(appointment, "service", None), "name", "Servicio")
+    d = _fmt_date(appointment.date)
+    t = _fmt_time(appointment.time)
+
+    vars_payload = {
+        "1": appointment.customer_name,
+        "2": svc_name,
+        "3": d,
+        "4": t,
+        "5": SALON_NAME
+    }
 
     to_client = _to_wa(getattr(appointment, "customer_phone", ""))
-    if to_client:
-        _send(to_client,
-              f"⏰ Recordatorio de cita para mañana en {SALON_NAME}\n"
-              f"• {service_name}\n• {dstr} a las {tstr}\n\n"
-              f"Si necesitás reprogramar, respondé a este WhatsApp.")
+    if to_client and REM_SID:
+        _send_template(to_client, REM_SID, vars_payload)
 
-    if OWNER_WA:
-        _send(OWNER_WA,
-              f"📅 Recordatorio: Mañana {dstr} {tstr}\n"
-              f"{appointment.customer_name} ({appointment.customer_phone}) – {service_name}")
+    if OWNER_WA and REM_SID:
+        _send_template(OWNER_WA, REM_SID, vars_payload)
