@@ -2,7 +2,7 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
-    path('', views.reservar_cita, name='home_redirect'),  # opcional si quieres que / vaya a reservar
+    path('',views.home, name="home"), 
     path('reservar/', views.reservar_cita, name='reservar_cita'),
     path('agenda/', views.calendar_view, name='calendar_view'),
     path('api/appointments/', views.appointments_json, name='appointments_json'),

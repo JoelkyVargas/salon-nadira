@@ -1,10 +1,8 @@
 from datetime import time as dtime, datetime, timedelta
-
 from django.http import JsonResponse
 from django.shortcuts import render
-from .models import Testimonial
 from .forms import AppointmentForm
-from .models import Appointment, BlockedSlot, Service
+from .models import Appointment, BlockedSlot, Service, Testimonial
 from .whatsapp import send_booking_notifications  # ← NUEVO
 
 # 🕘 Configuración de horario laboral
@@ -190,3 +188,26 @@ def servicios(request):
 def testimonios(request):
     items = Testimonial.objects.filter(active=True).prefetch_related("photos").order_by("-created_at")
     return render(request, "citas/testimonios.html", {"items": items})
+
+def home(request):
+    form = AppointmentForm(request.POST or None)
+    selected_date = request.POST.get('date') if request.method == "POST" else None
+    available_times = _available_times_for_date(selected_date)
+    success = None
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        success = "¡Cita reservada con éxito!"
+        form = AppointmentForm()
+
+    services = Service.objects.filter(active=True).order_by("name")
+    testimonios = (Testimonial.objects.filter(active=True)
+                   .prefetch_related("photos")
+                   .order_by("-created_at")[:12])
+
+    return render(request, "citas/home.html", {
+        "form": form,
+        "success": success,
+        "available_times": available_times,
+        "services": services,
+        "testimonios": testimonios,
+    })

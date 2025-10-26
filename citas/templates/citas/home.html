@@ -1,0 +1,143 @@
+{% load static %}
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Salón | Reservas, Servicios y Testimonios</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'citas/style.css' %}">
+  <style>
+    .nav-link{font-weight:700}
+    section{scroll-margin-top:100px}
+    .hero{padding:3rem 0}
+  </style>
+</head>
+<body class="bg-light">
+
+<!-- NAV -->
+<nav class="navbar navbar-expand-lg bg-white border-bottom sticky-top">
+  <div class="container">
+    <a class="navbar-brand fw-bold" href="#top" style="color:#ff8da1;">Salón Nadira</a>
+    <button class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#nav"><span class="navbar-toggler-icon"></span></button>
+    <div id="nav" class="collapse navbar-collapse">
+      <ul class="navbar-nav ms-auto">
+        <li class="nav-item"><a class="nav-link" href="#reservar">Reservar</a></li>
+        <li class="nav-item"><a class="nav-link" href="#servicios">Servicios</a></li>
+        <li class="nav-item"><a class="nav-link" href="#testimonios">Testimonios</a></li>
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<a id="top"></a>
+
+<!-- HERO -->
+<header class="hero text-center bg-white">
+  <div class="container">
+    <h1 class="page-title">Agenda tu cita</h1>
+    <p class="text-muted">Reserva rápido, revisa servicios y mira resultados reales.</p>
+  </div>
+</header>
+
+<!-- RESERVAR -->
+<section id="reservar" class="container py-4">
+  <div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+      <div class="card shadow-lg p-4 rounded-3">
+        <h2 class="mb-3" style="color:#ff8da1;font-weight:800;">Reservar Cita</h2>
+        {% if success %}<div class="alert alert-success">{{ success }}</div>{% endif %}
+        <form method="post">
+          {% csrf_token %}
+          <div class="mb-3">
+            <label class="form-label">Nombre</label>
+            {{ form.customer_name }}
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Teléfono</label>
+            {{ form.customer_phone }}
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Servicio</label>
+            {{ form.service }}
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Fecha</label>
+            {{ form.date }}
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Hora</label>
+            {{ form.time }}
+            <datalist id="available_times">
+              {% for t in available_times %}<option value="{{ t }}">{% endfor %}
+            </datalist>
+          </div>
+          <div class="d-grid">
+            <button class="btn btn-primary" type="submit">Confirmar Reserva</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SERVICIOS -->
+<section id="servicios" class="container py-5">
+  <h2 class="mb-4" style="color:#ff8da1;font-weight:800;">Servicios</h2>
+  <div class="row g-4">
+    {% for s in services %}
+      <div class="col-12 col-md-6 col-lg-4">
+        <div class="card h-100 shadow-sm p-3">
+          <h5 class="fw-bold mb-1">{{ s.name }}</h5>
+          {% if s.description %}<p class="text-muted mb-2">{{ s.description }}</p>{% endif %}
+          {% if s.duration_minutes %}<span class="badge text-bg-light">~{{ s.duration_minutes }} min</span>{% endif %}
+        </div>
+      </div>
+    {% empty %}
+      <p class="text-muted">Aún no hay servicios configurados.</p>
+    {% endfor %}
+  </div>
+</section>
+
+<!-- TESTIMONIOS -->
+<section id="testimonios" class="container py-5">
+  <h2 class="mb-4" style="color:#ff8da1;font-weight:800;">Testimonios</h2>
+  <div class="row g-4">
+    {% for t in testimonios %}
+      <div class="col-12">
+        <div class="card shadow-sm p-3">
+          <p class="mb-1">“{{ t.comment }}”</p>
+          <small class="text-muted">— {{ t.name }}</small>
+          {% if t.photos.all %}
+            <div class="row g-3 mt-2">
+              {% for p in t.photos.all %}
+                <div class="col-12 col-md-6">
+                  <div class="ratio ratio-4x3 border rounded overflow-hidden">
+                    <img src="{{ p.before_image.url }}" class="w-100 h-100 object-fit-cover" alt="Antes">
+                  </div>
+                </div>
+                {% if p.after_image %}
+                <div class="col-12 col-md-6">
+                  <div class="ratio ratio-4x3 border rounded overflow-hidden">
+                    <img src="{{ p.after_image.url }}" class="w-100 h-100 object-fit-cover" alt="Después">
+                  </div>
+                </div>
+                {% endif %}
+              {% endfor %}
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    {% empty %}
+      <p class="text-muted">Aún no hay testimonios publicados.</p>
+    {% endfor %}
+  </div>
+</section>
+
+<footer class="py-4 text-center text-muted">
+  <small>© {{ now|date:"Y" }} Salón Nadira</small>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
