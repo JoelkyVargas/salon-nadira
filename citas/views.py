@@ -183,7 +183,9 @@ def appointments_list(request):
 
 
 
-
+def servicios(request):
+    items = Service.objects.filter(active=True).order_by("name")
+    return render(request, "citas/servicios.html", {"items": items})
 
 def testimonios(request):
     items = Testimonial.objects.filter(active=True).prefetch_related("photos").order_by("-created_at")
