@@ -38,3 +38,21 @@ class BlockedSlot(models.Model):
     class Meta:
         verbose_name = "Auto bloqueo"
         verbose_name_plural = "Auto bloqueos"
+
+
+
+class Testimonial(models.Model):
+    name = models.CharField(max_length=100)
+    comment = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    active = models.BooleanField(default=True)
+
+    def __str__(self): return f"{self.name}"
+
+class BeforeAfter(models.Model):
+    testimonial = models.ForeignKey(Testimonial, on_delete=models.CASCADE, related_name="photos")
+    before_image = models.ImageField(upload_to="before_after/")
+    after_image  = models.ImageField(upload_to="before_after/")
+    caption = models.CharField(max_length=200, blank=True)
+
+    def __str__(self): return f"Before/After de {self.testimonial.name}"

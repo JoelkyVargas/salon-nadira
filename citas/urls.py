@@ -8,4 +8,5 @@ urlpatterns = [
     path('api/appointments/', views.appointments_json, name='appointments_json'),
     path('api/available-times/', views.available_times_json, name='available_times_json'),  # ← NUEVO
     path('listar/', views.appointments_list, name='appointments_list'),
+    path('testimonios/', views.testimonios, name='testimonios'),
 ]

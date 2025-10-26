@@ -1,5 +1,6 @@
 # salon/citas/admin.py
 from django.contrib import admin
+from .models import Testimonial, BeforeAfter
 from django import forms
 from django.urls import path, reverse
 from django.shortcuts import render, redirect
@@ -111,3 +112,16 @@ class BlockedSlotAdmin(admin.ModelAdmin):
     )
     class Media:
         css = {"all": ("admin/custom.css",)}
+
+
+
+
+class BeforeAfterInline(admin.TabularInline):
+    model = BeforeAfter
+    extra = 1
+
+@admin.register(Testimonial)
+class TestimonialAdmin(admin.ModelAdmin):
+    list_display = ("name", "created_at", "active")
+    list_filter = ("active",)
+    inlines = [BeforeAfterInline]

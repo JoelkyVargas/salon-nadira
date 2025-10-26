@@ -120,3 +120,16 @@ TEMPLATES = [
 # -----------------------------------------------
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR
+
+
+
+
+# Media (dev local)
+MEDIA_URL = "/media/"
+MEDIA_ROOT = BASE_DIR / "media"
+
+# Producción: usa almacenamiento externo.
+# Ejemplo Cloudinary:
+# INSTALLED_APPS += ["cloudinary", "cloudinary_storage"]
+# DEFAULT_FILE_STORAGE = "cloudinary_storage.storage.MediaCloudinaryStorage"
+# (Configura CLOUDINARY_URL en Render → Env Vars)

@@ -2,7 +2,7 @@ from datetime import time as dtime, datetime, timedelta
 
 from django.http import JsonResponse
 from django.shortcuts import render
-
+from .models import Testimonial
 from .forms import AppointmentForm
 from .models import Appointment, BlockedSlot, Service
 from .whatsapp import send_booking_notifications  # ← NUEVO
@@ -180,3 +180,11 @@ def available_times_json(request):
 def appointments_list(request):
     qs = Appointment.objects.select_related("service").order_by("date", "time")
     return render(request, "citas/appointments_list.html", {"appointments": qs})
+
+
+
+
+
+def testimonios(request):
+    items = Testimonial.objects.filter(active=True).prefetch_related("photos").order_by("-created_at")
+    return render(request, "citas/testimonios.html", {"items": items})
