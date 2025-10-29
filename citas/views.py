@@ -2,7 +2,7 @@ from datetime import time as dtime, datetime, timedelta
 from django.http import JsonResponse
 from django.shortcuts import render
 from .forms import AppointmentForm
-from .models import Appointment, BlockedSlot, Service, Testimonial
+from .models import Appointment, BlockedSlot, ServiceCategory, Service, Testimonial
 from .whatsapp import send_booking_notifications  # ← NUEVO
 
 # 🕘 Configuración de horario laboral
@@ -182,8 +182,22 @@ def appointments_list(request):
 
 
 def servicios(request):
-    items = Service.objects.filter(active=True).order_by("name")
-    return render(request, "citas/servicios.html", {"items": items})
+    categorias = list(ServiceCategory.objects.order_by("name")[:3])
+    grupos = []
+
+    # Las 3 categorías definidas por tu esposa en el admin
+    for cat in categorias:
+        qs = Service.objects.filter(active=True, category=cat).order_by("name")
+        grupos.append((cat.name, qs))
+
+    # Servicios sin categoría -> “Otros”
+    sin_cat = Service.objects.filter(active=True, category__isnull=True).order_by("name")
+    if sin_cat.exists():
+        grupos.append(("Otros", sin_cat))
+
+    return render(request, "citas/servicios.html", {"grupos": grupos})
+
+
 
 def testimonios(request):
     items = Testimonial.objects.filter(active=True).prefetch_related("photos").order_by("-created_at")

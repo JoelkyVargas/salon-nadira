@@ -1,15 +1,41 @@
-# salon/citas/models.py (fragmento: añade Meta a cada modelo)
+# -*- coding: utf-8 -*-
+"""
+Created on Tue Oct 28 21:31:45 2025
+
+@author: jvz16
+"""
+
 from django.db import models
+
+class ServiceCategory(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+    # ...
+    class Meta:
+        ordering = ["id"]
+        verbose_name = "Categoria de servicio"
+        verbose_name_plural = "Categorias de servicio"
+
+    def __str__(self):
+        return self.name
+
 
 class Service(models.Model):
     name = models.CharField(max_length=100, unique=True)
     duration_minutes = models.PositiveIntegerField(default=60)
     color = models.CharField(max_length=7, default="#0d6efd")
     active = models.BooleanField(default=True)
+    # NUEVO:
+    category = models.ForeignKey(
+        ServiceCategory, null=True, blank=True,
+        on_delete=models.SET_NULL, related_name="services"
+    )
+
     def __str__(self): return self.name
+    # ...
     class Meta:
         verbose_name = "Servicio"
         verbose_name_plural = "Servicios"
+
 
 class Appointment(models.Model):
     customer_name = models.CharField(max_length=100)
@@ -19,9 +45,11 @@ class Appointment(models.Model):
     time = models.TimeField()
     def __str__(self):
         return f"{self.customer_name} - {self.service} ({self.date} {self.time})"
+    # ...
     class Meta:
         verbose_name = "Cita"
         verbose_name_plural = "Citas"
+
 
 class BlockedSlot(models.Model):
     date = models.DateField()
@@ -35,10 +63,10 @@ class BlockedSlot(models.Model):
         if self.time:
             return f"Bloqueo {self.date} {self.time} - {self.reason}"
         return f"Bloqueo {self.date} (todo el día) - {self.reason}"
+    # ...
     class Meta:
         verbose_name = "Auto bloqueo"
         verbose_name_plural = "Auto bloqueos"
-
 
 
 class Testimonial(models.Model):
@@ -46,13 +74,12 @@ class Testimonial(models.Model):
     comment = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
     active = models.BooleanField(default=True)
-
     def __str__(self): return f"{self.name}"
+
 
 class BeforeAfter(models.Model):
     testimonial = models.ForeignKey(Testimonial, on_delete=models.CASCADE, related_name="photos")
     before_image = models.ImageField(upload_to="before_after/")
     after_image  = models.ImageField(upload_to="before_after/")
     caption = models.CharField(max_length=200, blank=True)
-
     def __str__(self): return f"Before/After de {self.testimonial.name}"

@@ -1,11 +1,15 @@
 # salon/citas/admin.py
 from django.contrib import admin
-from .models import Testimonial, BeforeAfter
 from django import forms
 from django.urls import path, reverse
-from django.shortcuts import render, redirect
+from django.shortcuts import render
 from datetime import datetime as dt
-from .models import Service, Appointment, BlockedSlot
+
+from .models import (
+    Service, Appointment, BlockedSlot,
+    Testimonial, BeforeAfter,
+    ServiceCategory,  # <-- NUEVO: modelo de categorías
+)
 
 # ====== Branding del Admin ======
 admin.site.site_header = "Nadira Fashion Salon"
@@ -24,18 +28,28 @@ def _to_time(val):
         return None
     return dt.strptime(val, "%H:%M").time()
 
-# ====== SERVICES ======
+# ====== SERVICE CATEGORY (nuevo en admin) ======
+@admin.register(ServiceCategory)
+class ServiceCategoryAdmin(admin.ModelAdmin):
+    list_display = ("name",)
+    search_fields = ("name",)
+    ordering = ("name",)
+    class Media:
+        css = {"all": ("admin/custom.css",)}
+
+# ====== SERVICES (con categoría, sin perder tus extras) ======
 @admin.register(Service)
 class ServiceAdmin(admin.ModelAdmin):
-    list_display = ("name", "duration_minutes", "color", "active")
+    list_display  = ("name", "category", "duration_minutes", "color", "active")
+    # mantenemos tus ediciones en línea:
     list_editable = ("duration_minutes", "color", "active")
     search_fields = ("name",)
-    list_filter = ("active",)
-    ordering = ("name",)
+    list_filter   = ("active", "category")
+    ordering     = ("name",)
     class Media:
         css = {"all": ("admin/custom.css",)}  # tema rosado
 
-# ====== APPOINTMENTS + TOGGLE CALENDARIO ======
+# ====== APPOINTMENTS + TOGGLE CALENDARIO (igual que tenías) ======
 class AppointmentAdmin(admin.ModelAdmin):
     list_display = ("customer_name", "service", "date", "time", "customer_phone")
     list_filter = ("service", "date")
@@ -55,7 +69,6 @@ class AppointmentAdmin(admin.ModelAdmin):
         return custom + urls
 
     def calendar_view(self, request):
-        # Vista de calendario dentro del admin, con botón "Ver lista"
         ctx = {
             **self.admin_site.each_context(request),
             "title": "Calendario de Citas",
@@ -68,7 +81,7 @@ class AppointmentAdmin(admin.ModelAdmin):
 
 admin.site.register(Appointment, AppointmentAdmin)
 
-# ====== BLOCKED SLOTS (Auto bloqueos) con dropdowns ======
+# ====== BLOCKED SLOTS (Auto bloqueos) con dropdowns (igual que tenías) ======
 class BlockedSlotAdminForm(forms.ModelForm):
     start_time = forms.ChoiceField(choices=_hour_choices(), required=False, label="Inicio")
     end_time   = forms.ChoiceField(choices=_hour_choices(), required=False, label="Fin")
@@ -113,9 +126,7 @@ class BlockedSlotAdmin(admin.ModelAdmin):
     class Media:
         css = {"all": ("admin/custom.css",)}
 
-
-
-
+# ====== TESTIMONIOS + Before/After (manteniendo tu inline) ======
 class BeforeAfterInline(admin.TabularInline):
     model = BeforeAfter
     extra = 1
@@ -123,5 +134,5 @@ class BeforeAfterInline(admin.TabularInline):
 @admin.register(Testimonial)
 class TestimonialAdmin(admin.ModelAdmin):
     list_display = ("name", "created_at", "active")
-    list_filter = ("active",)
+    list_filter  = ("active",)
     inlines = [BeforeAfterInline]
