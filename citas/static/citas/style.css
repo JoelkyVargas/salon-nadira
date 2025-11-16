@@ -71,3 +71,55 @@ input, select {
   cursor: not-allowed;
 }
 
+/* ---------- BLOQUE CENTRAL CON 5 RECTÁNGULOS ---------- */
+
+.hero-menu {
+  position: relative;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.hero-menu-fallback {
+  background: radial-gradient(circle at top, #ffe6ef 0, #f7f7fb 55%);
+}
+
+.hero-menu-overlay {
+  background: rgba(0, 0, 0, 0.25);
+  padding: 2.5rem 0;
+}
+
+.hero-menu-card {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 90px;
+  border-radius: 18px;
+  background: rgba(255, 141, 161, 0.92);
+  color: #fff;
+  text-decoration: none;
+  font-weight: 700;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.18);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+.hero-menu-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.22);
+  background: rgba(255, 141, 161, 1);
+  color: #fff;
+}
+
+.hero-menu-title {
+  font-size: 1rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+@media (max-width: 576px) {
+  .hero-menu-card {
+    min-height: 80px;
+    font-size: 0.9rem;
+  }
+}
+

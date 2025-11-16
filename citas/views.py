@@ -2,7 +2,16 @@ from datetime import time as dtime, datetime, timedelta
 from django.http import JsonResponse
 from django.shortcuts import render
 from .forms import AppointmentForm
-from .models import Appointment, BlockedSlot, ServiceCategory, Service, Testimonial
+#from .models import Appointment, BlockedSlot, ServiceCategory, Service, Testimonial
+from .models import (
+    ServiceCategory,
+    Service,
+    Appointment,
+    BlockedSlot,
+    Testimonial,
+    BeforeAfter,
+    HomeBackground )
+
 from .whatsapp import send_booking_notifications  # ← NUEVO
 
 # 🕘 Configuración de horario laboral
@@ -180,7 +189,6 @@ def appointments_list(request):
     return render(request, "citas/appointments_list.html", {"appointments": qs})
 
 
-
 def servicios(request):
     categorias = list(ServiceCategory.objects.order_by("name")[:3])
     grupos = []
@@ -198,10 +206,10 @@ def servicios(request):
     return render(request, "citas/servicios.html", {"grupos": grupos})
 
 
-
 def testimonios(request):
     items = Testimonial.objects.filter(active=True).prefetch_related("photos").order_by("-created_at")
     return render(request, "citas/testimonios.html", {"items": items})
+
 
 def home(request):
     form = AppointmentForm(request.POST or None)
@@ -218,10 +226,14 @@ def home(request):
                    .prefetch_related("photos")
                    .order_by("-created_at")[:12])
 
+    # 👉 Fondo configurable desde el admin
+    background = HomeBackground.objects.filter(active=True).first()
+
     return render(request, "citas/home.html", {
         "form": form,
         "success": success,
         "available_times": available_times,
         "services": services,
         "testimonios": testimonios,
+        "background": background,
     })
