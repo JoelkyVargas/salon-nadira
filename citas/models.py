@@ -22,7 +22,7 @@ class ServiceCategory(models.Model):
 
 class Service(models.Model):
     name = models.CharField(max_length=100, unique=True)
-    # NUEVO: categoría opcional
+    # categoría opcional
     category = models.ForeignKey(
         ServiceCategory,
         on_delete=models.SET_NULL,
@@ -121,12 +121,17 @@ class HomeBackground(models.Model):
         return f"Fondo {self.pk}"
 
 
+# =======================
+# PAQUETES / PROMOCIONES
+# =======================
+
 class Promotion(models.Model):
     """
-    Promociones visibles en la web.
-    Algunas pueden ser solo para clientes VIP.
+    Paquetes/promociones visibles en la web.
+    - Algunas pueden ser solo VIP (vip_only=True)
+    - show_price=False muestra el texto "Consultar precio con propietaria"
     """
-    title = models.CharField("Título", max_length=150)
+    title = models.CharField("Título", max_length=120)
     description = models.TextField("Descripción", blank=True)
     image = models.ImageField(upload_to="promotions/", blank=True, null=True)
     price = models.DecimalField(
@@ -136,56 +141,56 @@ class Promotion(models.Model):
         blank=True,
         null=True,
     )
-    consult_price_with_owner = models.BooleanField(
-        "Mostrar 'Consultar precio con propietaria'",
-        default=False,
+    show_price = models.BooleanField(
+        "Mostrar precio al cliente",
+        default=True,
+        help_text="Si se desmarca, se mostrará 'Consultar precio con propietaria'.",
     )
-    is_vip_only = models.BooleanField(
-        "Solo clientes VIP",
+    vip_only = models.BooleanField(
+        "Solo Clientes VIP",
         default=False,
-        help_text="Si está marcado, la promo solo se mostrará en la sección VIP.",
+        help_text="Si se marca, este paquete solo se mostrará en la sección VIP.",
+    )
+    active = models.BooleanField("Activo", default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Paquete"
+        verbose_name_plural = "Paquetes"
+
+    def __str__(self):
+        return self.title
+
+    def display_price(self):
+        if not self.show_price or self.price is None:
+            return "Consultar precio con propietaria"
+        # Formato simple, lo puedes adaptar a colones/dólares
+        return f"{self.price:.0f}"
+    display_price.short_description = "Precio visible"
+
+
+class VIPClientCode(models.Model):
+    """
+    Código VIP por clienta.
+    """
+    code = models.CharField(
+        "Código VIP",
+        max_length=10,
+        unique=True,
+        help_text="Puede ser numérico de 4 dígitos o cualquier texto único.",
+    )
+    note = models.CharField(
+        "Nota / Nombre clienta",
+        max_length=200,
+        blank=True,
+        help_text="Referencia interna (ej. nombre de la clienta).",
     )
     active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        verbose_name = "Promoción"
-        verbose_name_plural = "Promociones"
-        ordering = ["-created_at"]
-
-    def __str__(self):
-        return self.title
-
-
-class VipCode(models.Model):
-    """
-    Código VIP de 4 dígitos.
-    - Puede ser definido manualmente por tu esposa.
-    - Si se deja en blanco en el admin, se genera automáticamente.
-    """
-    code = models.CharField(
-        "Código (4 dígitos)",
-        max_length=4,
-        unique=True,
-        blank=True,
-        help_text="Si lo dejas en blanco, se generará automáticamente.",
-    )
-    client_name = models.CharField(
-        "Nombre de la clienta",
-        max_length=100,
-        blank=True,
-    )
-    notes = models.CharField("Notas", max_length=200, blank=True)
-    active = models.BooleanField("Activo", default=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
         verbose_name = "Código VIP"
         verbose_name_plural = "Códigos VIP"
-        ordering = ["-created_at"]
 
     def __str__(self):
-        if self.client_name:
-            return f"{self.code or '----'} - {self.client_name}"
-        return self.code or "Código VIP sin definir"
-
+        return self.code

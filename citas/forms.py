@@ -7,10 +7,11 @@ Created on Tue Oct 28 21:31:45 2025
 
 
 
+# salon/citas/forms.py
 from datetime import datetime, timedelta, time as dtime
 from django import forms
 from django.utils import timezone
-from .models import Appointment, BlockedSlot, Service, VipCode
+from .models import Appointment, BlockedSlot, Service
 
 # Horario laboral
 OPEN_HOUR = 8     # 08:00
@@ -40,11 +41,19 @@ class AppointmentForm(forms.ModelForm):
         model = Appointment
         fields = ['customer_name', 'customer_phone', 'service', 'date', 'time']
         widgets = {
-            'customer_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Tu nombre'}),
-            'customer_phone': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Tu teléfono'}),
+            'customer_name': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Tu nombre'
+            }),
+            'customer_phone': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Tu teléfono'
+            }),
             'date': forms.DateInput(attrs={
-                'type': 'date', 'class': 'form-control', 'id': 'date-input',
-                'min': timezone.now().date().isoformat()
+                'type': 'date',
+                'class': 'form-control',
+                'id': 'date-input',
+                'min': timezone.now().date().isoformat(),
             }),
         }
 
@@ -96,12 +105,15 @@ class AppointmentForm(forms.ModelForm):
             end_time__isnull=False
         ):
             if b.start_time <= start_time < b.end_time:
-                raise forms.ValidationError("Ese horario cae dentro de un rango bloqueado. Elegí otra hora.")
+                raise forms.ValidationError(
+                    "Ese horario cae dentro de un rango bloqueado. Elegí otra hora."
+                )
 
         # 4) Dentro de horario laboral (en punto)
         if start_time.hour not in BUSINESS_HOURS or start_time.minute != 0:
             raise forms.ValidationError(
-                f"El horario debe ser en horas en punto entre {OPEN_HOUR:02}:00 y {CLOSE_HOUR:02}:00."
+                f"El horario debe ser en horas en punto entre "
+                f"{OPEN_HOUR:02}:00 y {CLOSE_HOUR:02}:00."
             )
 
         # 5) Debe terminar antes del cierre
@@ -110,7 +122,9 @@ class AppointmentForm(forms.ModelForm):
         end_dt = start_dt + timedelta(minutes=duration_min)
         close_dt = datetime.combine(date, dtime(CLOSE_HOUR, 0))
         if end_dt > close_dt:
-            raise forms.ValidationError("El servicio no termina antes del cierre. Elegí otra hora.")
+            raise forms.ValidationError(
+                "El servicio no termina antes del cierre. Elegí otra hora."
+            )
 
         # 6) No solapar con otras citas (según duración de cada una)
         for ap in Appointment.objects.select_related("service").filter(date=date):
@@ -118,37 +132,9 @@ class AppointmentForm(forms.ModelForm):
             ap_start = datetime.combine(date, ap.time)
             ap_end = ap_start + timedelta(minutes=ap_dur)
             if start_dt < ap_end and ap_start < end_dt:
-                raise forms.ValidationError("Ese horario se solapa con otra cita. Elegí otra hora.")
+                raise forms.ValidationError(
+                    "Ese horario se solapa con otra cita. Elegí otra hora."
+                )
 
         cleaned['time'] = start_time
         return cleaned
-
-
-class VipAccessForm(forms.Form):
-    """
-    Formulario para que la clienta ingrese su código VIP (4 dígitos).
-    """
-    code = forms.CharField(
-        max_length=4,
-        label="Código VIP",
-        widget=forms.TextInput(
-            attrs={
-                "class": "form-control",
-                "placeholder": "Ingresá tu código VIP (4 dígitos)",
-            }
-        ),
-    )
-
-    def clean_code(self):
-        code = self.cleaned_data["code"].strip()
-        if not code.isdigit() or len(code) != 4:
-            raise forms.ValidationError("El código debe tener exactamente 4 dígitos numéricos.")
-
-        try:
-            vip = VipCode.objects.get(code=code, active=True)
-        except VipCode.DoesNotExist:
-            raise forms.ValidationError("Código VIP no válido o inactivo.")
-
-        # Guardamos la instancia para poder usarla en la vista
-        self.vip_instance = vip
-        return code

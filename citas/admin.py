@@ -13,7 +13,7 @@ from django.urls import path, reverse
 from django.shortcuts import render
 from datetime import datetime as dt
 from django.utils.html import format_html
-import random
+from django.utils.crypto import get_random_string
 
 from .models import (
     ServiceCategory,
@@ -24,7 +24,7 @@ from .models import (
     BeforeAfter,
     HomeBackground,
     Promotion,
-    VipCode,
+    VIPClientCode,
 )
 
 # ====== Branding del Admin ======
@@ -195,36 +195,31 @@ class HomeBackgroundAdmin(admin.ModelAdmin):
         return super().has_add_permission(request)
 
 
-# ====== PROMOCIONES ======
+# ====== PAQUETES / PROMOCIONES ======
 @admin.register(Promotion)
 class PromotionAdmin(admin.ModelAdmin):
-    list_display = (
-        "title",
-        "is_vip_only",
-        "consult_price_with_owner",
-        "price",
-        "active",
-        "created_at",
-    )
-    list_filter = ("active", "is_vip_only", "consult_price_with_owner", "created_at")
+    list_display = ("title", "vip_only", "active", "show_price", "price", "created_at")
+    list_filter = ("vip_only", "active", "show_price")
     search_fields = ("title", "description")
-    ordering = ("-created_at",)
+    readonly_fields = ("created_at",)
+    fieldsets = (
+        (None, {"fields": ("title", "description", "image")}),
+        ("Precio", {"fields": ("price", "show_price")}),
+        ("Configuración", {"fields": ("vip_only", "active")}),
+        ("Metadatos", {"fields": ("created_at",)}),
+    )
 
 
 # ====== CÓDIGOS VIP ======
-@admin.register(VipCode)
-class VipCodeAdmin(admin.ModelAdmin):
-    list_display = ("code", "client_name", "active", "created_at")
-    list_filter = ("active", "created_at")
-    search_fields = ("code", "client_name", "notes")
-    ordering = ("-created_at",)
+@admin.register(VIPClientCode)
+class VIPClientCodeAdmin(admin.ModelAdmin):
+    list_display = ("code", "note", "active", "created_at")
+    list_filter = ("active",)
+    search_fields = ("code", "note")
+    readonly_fields = ("created_at",)
 
     def save_model(self, request, obj, form, change):
-        # Si no se definió código manualmente, generamos uno aleatorio de 4 dígitos.
+        # Si no se escribió un código, generamos uno de 4 dígitos
         if not obj.code:
-            for _ in range(50):  # intentos para evitar colisiones
-                candidate = f"{random.randint(0, 9999):04d}"
-                if not VipCode.objects.filter(code=candidate).exists():
-                    obj.code = candidate
-                    break
+            obj.code = get_random_string(4, allowed_chars="0123456789")
         super().save_model(request, obj, form, change)
