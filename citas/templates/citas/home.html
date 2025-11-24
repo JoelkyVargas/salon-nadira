@@ -109,7 +109,9 @@
     <div class="col-md-8 col-lg-6">
       <div class="card shadow-lg p-4 rounded-3">
         <h2 class="mb-3" style="color:#ff8da1;font-weight:800;">Reservar Cita</h2>
-        {% if success %}<div class="alert alert-success">{{ success }}</div>{% endif %}
+        {% if success %}
+          <div class="alert alert-success">{{ success }}</div>
+        {% endif %}
         <form method="post">
           {% csrf_token %}
           <div class="mb-3">
@@ -132,7 +134,9 @@
             <label class="form-label">Hora</label>
             {{ form.time }}
             <datalist id="available_times">
-              {% for t in available_times %}<option value="{{ t }}">{% endfor %}
+              {% for t in available_times %}
+                <option value="{{ t }}"></option>
+              {% endfor %}
             </datalist>
           </div>
           <div class="d-grid">
@@ -157,9 +161,7 @@
           {% if s.description %}
             <p class="text-muted mb-2">{{ s.description }}</p>
           {% endif %}
-          {% if s.duration_minutes %}
-            <span class="badge text-bg-light">~{{ s.duration_minutes }} min</span>
-          {% endif %}
+          {# Se puede ocultar duración aquí si ya no la querés mostrar #}
         </div>
       </div>
     {% empty %}
@@ -214,9 +216,35 @@
          data-section="promociones"
          class="container py-5 toggle-section d-none">
   <h2 class="mb-3" style="color:#ff8da1;font-weight:800;">Promociones</h2>
-  <p class="text-muted">
-    Muy pronto verás aquí las mejores promociones de Nadira Fashion ✨
-  </p>
+
+  {% if promotions %}
+    <div class="row g-4">
+      {% for promo in promotions %}
+        <div class="col-12 col-md-6 col-lg-4">
+          <div class="card h-100 shadow-sm promo-card">
+            {% if promo.image %}
+              <div class="ratio ratio-4x3 mb-2 rounded overflow-hidden">
+                <img src="{{ promo.image.url }}" class="w-100 h-100 object-fit-cover" alt="{{ promo.title }}">
+              </div>
+            {% endif %}
+            <h5 class="fw-bold mb-1">{{ promo.title }}</h5>
+            {% if promo.description %}
+              <p class="text-muted mb-2">{{ promo.description }}</p>
+            {% endif %}
+            {% if promo.consult_price_with_owner %}
+              <span class="badge text-bg-light">Consultar precio con propietaria</span>
+            {% elif promo.price %}
+              <span class="badge text-bg-light">₡{{ promo.price }}</span>
+            {% endif %}
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p class="text-muted">
+      Muy pronto verás aquí las mejores promociones de Nadira Fashion ✨
+    </p>
+  {% endif %}
 </section>
 
 <!-- CLIENTES VIP (oculta inicialmente) -->
@@ -224,9 +252,66 @@
          data-section="vip"
          class="container py-5 toggle-section d-none">
   <h2 class="mb-3" style="color:#ff8da1;font-weight:800;">Clientes VIP</h2>
-  <p class="text-muted">
-    Espacio reservado para beneficios exclusivos de nuestras clientas VIP 💖
-  </p>
+
+  <div class="row">
+    <div class="col-md-6 col-lg-4">
+      <div class="card shadow-sm p-3 mb-4">
+        <h5 class="fw-bold mb-2">Ingresá tu código VIP</h5>
+        <form method="post">
+          {% csrf_token %}
+          {{ vip_form.non_field_errors }}
+          <div class="mb-3">
+            {{ vip_form.code.label_tag }}
+            {{ vip_form.code }}
+            {% for err in vip_form.code.errors %}
+              <div class="text-danger small">{{ err }}</div>
+            {% endfor %}
+          </div>
+          <div class="d-grid">
+            <button class="btn btn-primary" type="submit">Ver promociones VIP</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div class="col-md-6 col-lg-8">
+      {% if vip_message %}
+        <div class="alert alert-success mb-3">
+          {{ vip_message }}
+        </div>
+      {% endif %}
+
+      {% if vip_promotions %}
+        <div class="row g-4">
+          {% for promo in vip_promotions %}
+            <div class="col-12 col-md-6">
+              <div class="card h-100 shadow-sm promo-card vip-card">
+                {% if promo.image %}
+                  <div class="ratio ratio-4x3 mb-2 rounded overflow-hidden">
+                    <img src="{{ promo.image.url }}" class="w-100 h-100 object-fit-cover" alt="{{ promo.title }}">
+                  </div>
+                {% endif %}
+                <h5 class="fw-bold mb-1">{{ promo.title }}</h5>
+                {% if promo.description %}
+                  <p class="text-muted mb-2">{{ promo.description }}</p>
+                {% endif %}
+                {% if promo.consult_price_with_owner %}
+                  <span class="badge text-bg-light">Consultar precio con propietaria</span>
+                {% elif promo.price %}
+                  <span class="badge text-bg-light">₡{{ promo.price }}</span>
+                {% endif %}
+                <span class="badge bg-warning text-dark mt-2">Exclusivo VIP</span>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      {% elif vip_message %}
+        <p class="text-muted">
+          No hay promociones VIP activas en este momento, pero pronto tendremos sorpresas para ti 💖.
+        </p>
+      {% endif %}
+    </div>
+  </div>
 </section>
 
 <footer class="py-4 text-center text-muted">
@@ -262,7 +347,7 @@
       });
     });
 
-    // Opcional: si querés que alguna se muestre por defecto al cargar, descomentá:
+    // Si querés que alguna se muestre por defecto al cargar:
     // showSection("reservar");
   });
 </script>

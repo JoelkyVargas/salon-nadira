@@ -1,3 +1,11 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Tue Oct 28 21:31:45 2025
+
+@author: jvz16
+"""
+
+
 # salon/citas/admin.py
 from django.contrib import admin
 from django import forms
@@ -5,6 +13,7 @@ from django.urls import path, reverse
 from django.shortcuts import render
 from datetime import datetime as dt
 from django.utils.html import format_html
+import random
 
 from .models import (
     ServiceCategory,
@@ -14,6 +23,8 @@ from .models import (
     Testimonial,
     BeforeAfter,
     HomeBackground,
+    Promotion,
+    VipCode,
 )
 
 # ====== Branding del Admin ======
@@ -182,3 +193,38 @@ class HomeBackgroundAdmin(admin.ModelAdmin):
         if HomeBackground.objects.count() >= 1:
             return False
         return super().has_add_permission(request)
+
+
+# ====== PROMOCIONES ======
+@admin.register(Promotion)
+class PromotionAdmin(admin.ModelAdmin):
+    list_display = (
+        "title",
+        "is_vip_only",
+        "consult_price_with_owner",
+        "price",
+        "active",
+        "created_at",
+    )
+    list_filter = ("active", "is_vip_only", "consult_price_with_owner", "created_at")
+    search_fields = ("title", "description")
+    ordering = ("-created_at",)
+
+
+# ====== CÓDIGOS VIP ======
+@admin.register(VipCode)
+class VipCodeAdmin(admin.ModelAdmin):
+    list_display = ("code", "client_name", "active", "created_at")
+    list_filter = ("active", "created_at")
+    search_fields = ("code", "client_name", "notes")
+    ordering = ("-created_at",)
+
+    def save_model(self, request, obj, form, change):
+        # Si no se definió código manualmente, generamos uno aleatorio de 4 dígitos.
+        if not obj.code:
+            for _ in range(50):  # intentos para evitar colisiones
+                candidate = f"{random.randint(0, 9999):04d}"
+                if not VipCode.objects.filter(code=candidate).exists():
+                    obj.code = candidate
+                    break
+        super().save_model(request, obj, form, change)

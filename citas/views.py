@@ -1,8 +1,17 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Tue Oct 28 21:31:45 2025
+
+@author: jvz16
+"""
+
+
+
+
 from datetime import time as dtime, datetime, timedelta
 from django.http import JsonResponse
 from django.shortcuts import render
-from .forms import AppointmentForm
-#from .models import Appointment, BlockedSlot, ServiceCategory, Service, Testimonial
+from .forms import AppointmentForm, VipAccessForm
 from .models import (
     ServiceCategory,
     Service,
@@ -10,23 +19,27 @@ from .models import (
     BlockedSlot,
     Testimonial,
     BeforeAfter,
-    HomeBackground )
-
-from .whatsapp import send_booking_notifications  # ← NUEVO
+    HomeBackground,
+    Promotion,
+)
+from .whatsapp import send_booking_notifications  # ← WhatsApp
 
 # 🕘 Configuración de horario laboral
 OPEN_HOUR = 8
 CLOSE_HOUR = 20
 BUSINESS_HOURS = range(OPEN_HOUR, CLOSE_HOUR + 1)  # 08..20
 
+
 # ---------- Utilidades ----------
 def _all_times():
     """['08:00','09:00',...,'20:00'] (horas en punto)."""
     return [dtime(hour=h).strftime("%H:%M") for h in BUSINESS_HOURS]
 
+
 def _time_in_range(t, start, end):
     """True si t está en [start, end) (fin abierto)."""
     return (start is not None and end is not None and start <= t < end)
+
 
 def _available_times_for_date(date_str, service_duration=None):
     """
@@ -88,7 +101,8 @@ def _available_times_for_date(date_str, service_duration=None):
 
     return free
 
-# ---------- Vistas ----------
+
+# ---------- Vistas de reservas “clásicas” ----------
 def reservar_cita(request):
     """
     Renderiza el formulario y guarda si es válido.
@@ -130,8 +144,10 @@ def reservar_cita(request):
         },
     )
 
+
 def calendar_view(request):
     return render(request, "citas/calendar.html")
+
 
 def appointments_json(request):
     events = []
@@ -167,6 +183,7 @@ def appointments_json(request):
         })
     return JsonResponse(events, safe=False)
 
+
 def available_times_json(request):
     """
     GET /api/available-times/?date=YYYY-MM-DD&service=<id>
@@ -184,11 +201,13 @@ def available_times_json(request):
     times = _available_times_for_date(date_str, service_duration=service_duration) if date_str else []
     return JsonResponse({"times": times})
 
+
 def appointments_list(request):
     qs = Appointment.objects.select_related("service").order_by("date", "time")
     return render(request, "citas/appointments_list.html", {"appointments": qs})
 
 
+# ---------- Vistas simples de servicios y testimonios ----------
 def servicios(request):
     categorias = list(ServiceCategory.objects.order_by("name")[:3])
     grupos = []
@@ -211,29 +230,83 @@ def testimonios(request):
     return render(request, "citas/testimonios.html", {"items": items})
 
 
+# ---------- HOME UNIFICADO: reservas + servicios + testimonios + promos + VIP ----------
 def home(request):
-    form = AppointmentForm(request.POST or None)
-    selected_date = request.POST.get('date') if request.method == "POST" else None
-    available_times = _available_times_for_date(selected_date)
+    """
+    Página principal con:
+      - Reservas (form de cita)
+      - Servicios
+      - Testimonios
+      - Promociones públicas
+      - Clientes VIP: ingreso de código + promos VIP
+    """
     success = None
-    if request.method == "POST" and form.is_valid():
-        form.save()
-        success = "¡Cita reservada con éxito!"
-        form = AppointmentForm()
+    vip_promotions = None
+    vip_message = None
+
+    # Por defecto (GET o cualquier cosa que no sea formulario VIP):
+    available_times = None
+
+    if request.method == "POST" and "code" in request.POST:
+        # ====== POST del formulario de CÓDIGO VIP ======
+        vip_form = VipAccessForm(request.POST)
+        form = AppointmentForm()  # Form vacío para no mezclar POST
+        if vip_form.is_valid():
+            vip = getattr(vip_form, "vip_instance", None)
+            if vip:
+                vip_promotions = Promotion.objects.filter(active=True, is_vip_only=True)
+                nombre = vip.client_name or "clienta VIP"
+                vip_message = f"Bienvenida, {nombre}. Estas son tus promociones exclusivas ✨"
+    else:
+        # ====== GET normal o POST de reserva de cita ======
+        # Compatibilidad server-side para re-render con selección previa
+        selected_date = request.POST.get('date') if request.method == "POST" else None
+        selected_service_id = request.POST.get("service") if request.method == "POST" else None
+        service_duration = None
+        if selected_service_id:
+            svc = Service.objects.filter(id=selected_service_id).only("duration_minutes").first()
+            if svc:
+                service_duration = getattr(svc, "duration_minutes", 60)
+
+        available_times = _available_times_for_date(selected_date, service_duration) if selected_date else None
+        form = AppointmentForm(request.POST or None, available_times=available_times)
+        vip_form = VipAccessForm()
+
+        if request.method == "POST" and form.is_valid():
+            ap = form.save()
+            success = "¡Cita reservada con éxito!"
+            try:
+                send_booking_notifications(ap)
+            except Exception as e:
+                print("WHATSAPP send error:", e)
+            form = AppointmentForm()  # limpiamos
 
     services = Service.objects.filter(active=True).order_by("name")
-    testimonios = (Testimonial.objects.filter(active=True)
-                   .prefetch_related("photos")
-                   .order_by("-created_at")[:12])
+    testimonios = (
+        Testimonial.objects.filter(active=True)
+        .prefetch_related("photos")
+        .order_by("-created_at")[:12]
+    )
+
+    # Promociones públicas (no VIP)
+    promotions = Promotion.objects.filter(active=True, is_vip_only=False)
 
     # 👉 Fondo configurable desde el admin
     background = HomeBackground.objects.filter(active=True).first()
 
-    return render(request, "citas/home.html", {
-        "form": form,
-        "success": success,
-        "available_times": available_times,
-        "services": services,
-        "testimonios": testimonios,
-        "background": background,
-    })
+    return render(
+        request,
+        "citas/home.html",
+        {
+            "form": form,
+            "success": success,
+            "available_times": available_times,
+            "services": services,
+            "testimonios": testimonios,
+            "background": background,
+            "promotions": promotions,
+            "vip_form": vip_form,
+            "vip_promotions": vip_promotions,
+            "vip_message": vip_message,
+        },
+    )

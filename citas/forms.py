@@ -1,12 +1,22 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Tue Oct 28 21:31:45 2025
+
+@author: jvz16
+"""
+
+
+
 from datetime import datetime, timedelta, time as dtime
 from django import forms
 from django.utils import timezone
-from .models import Appointment, BlockedSlot, Service
+from .models import Appointment, BlockedSlot, Service, VipCode
 
 # Horario laboral
 OPEN_HOUR = 8     # 08:00
 CLOSE_HOUR = 20   # 20:00
 BUSINESS_HOURS = range(OPEN_HOUR, CLOSE_HOUR + 1)  # 08..20
+
 
 class AppointmentForm(forms.ModelForm):
     """
@@ -67,7 +77,12 @@ class AppointmentForm(forms.ModelForm):
             raise forms.ValidationError("Hora inválida.")
 
         # 1) Día bloqueado
-        if BlockedSlot.objects.filter(date=date, start_time__isnull=True, end_time__isnull=True, time__isnull=True).exists():
+        if BlockedSlot.objects.filter(
+            date=date,
+            start_time__isnull=True,
+            end_time__isnull=True,
+            time__isnull=True
+        ).exists():
             raise forms.ValidationError("Ese día está bloqueado. Elegí otra fecha.")
 
         # 2) Bloqueo puntual
@@ -75,7 +90,11 @@ class AppointmentForm(forms.ModelForm):
             raise forms.ValidationError("Ese horario está bloqueado. Elegí otra hora.")
 
         # 3) Bloqueo por rango
-        for b in BlockedSlot.objects.filter(date=date, start_time__isnull=False, end_time__isnull=False):
+        for b in BlockedSlot.objects.filter(
+            date=date,
+            start_time__isnull=False,
+            end_time__isnull=False
+        ):
             if b.start_time <= start_time < b.end_time:
                 raise forms.ValidationError("Ese horario cae dentro de un rango bloqueado. Elegí otra hora.")
 
@@ -103,3 +122,33 @@ class AppointmentForm(forms.ModelForm):
 
         cleaned['time'] = start_time
         return cleaned
+
+
+class VipAccessForm(forms.Form):
+    """
+    Formulario para que la clienta ingrese su código VIP (4 dígitos).
+    """
+    code = forms.CharField(
+        max_length=4,
+        label="Código VIP",
+        widget=forms.TextInput(
+            attrs={
+                "class": "form-control",
+                "placeholder": "Ingresá tu código VIP (4 dígitos)",
+            }
+        ),
+    )
+
+    def clean_code(self):
+        code = self.cleaned_data["code"].strip()
+        if not code.isdigit() or len(code) != 4:
+            raise forms.ValidationError("El código debe tener exactamente 4 dígitos numéricos.")
+
+        try:
+            vip = VipCode.objects.get(code=code, active=True)
+        except VipCode.DoesNotExist:
+            raise forms.ValidationError("Código VIP no válido o inactivo.")
+
+        # Guardamos la instancia para poder usarla en la vista
+        self.vip_instance = vip
+        return code
