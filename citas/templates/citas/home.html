@@ -36,7 +36,7 @@
           <a class="nav-link section-link" href="#" data-section="testimonios">Testimonios</a>
         </li>
         <li class="nav-item">
-          <a class="nav-link section-link" href="#" data-section="promociones">Promociones</a>
+          <a class="nav-link section-link" href="#" data-section="Paquetes">Paquetes</a>
         </li>
         <li class="nav-item">
           <a class="nav-link section-link" href="#" data-section="vip">Clientes VIP</a>
@@ -85,8 +85,8 @@
         </div>
 
         <div class="col-6 col-md-4 col-lg-2">
-          <a href="#" class="hero-menu-card text-center section-link" data-section="promociones">
-            <span class="hero-menu-title">Promociones</span>
+          <a href="#" class="hero-menu-card text-center section-link" data-section="paquetes">
+            <span class="hero-menu-title">Paquetes</span>
           </a>
         </div>
 
@@ -133,11 +133,6 @@
           <div class="mb-3">
             <label class="form-label">Hora</label>
             {{ form.time }}
-            <datalist id="available_times">
-              {% for t in available_times %}
-                <option value="{{ t }}"></option>
-              {% endfor %}
-            </datalist>
           </div>
           <div class="d-grid">
             <button class="btn btn-primary" type="submit">Confirmar Reserva</button>
@@ -161,7 +156,6 @@
           {% if s.description %}
             <p class="text-muted mb-2">{{ s.description }}</p>
           {% endif %}
-          {# Se puede ocultar duración aquí si ya no la querés mostrar #}
         </div>
       </div>
     {% empty %}
@@ -211,11 +205,11 @@
   </div>
 </section>
 
-<!-- PROMOCIONES (oculta inicialmente) -->
-<section id="promociones"
-         data-section="promociones"
+<!-- PAQUETES (oculta inicialmente) -->
+<section id="paquetes"
+         data-section="paquetes"
          class="container py-5 toggle-section d-none">
-  <h2 class="mb-3" style="color:#ff8da1;font-weight:800;">Promociones</h2>
+  <h2 class="mb-3" style="color:#ff8da1;font-weight:800;">Paquetes</h2>
 
   {% if promotions %}
     <div class="row g-4">
@@ -242,7 +236,7 @@
     </div>
   {% else %}
     <p class="text-muted">
-      Muy pronto verás aquí las mejores promociones de Nadira Fashion ✨
+      Muy pronto verás aquí los mejores paquetes de Nadira Fashion ✨
     </p>
   {% endif %}
 </section>
@@ -268,7 +262,7 @@
             {% endfor %}
           </div>
           <div class="d-grid">
-            <button class="btn btn-primary" type="submit">Ver promociones VIP</button>
+            <button class="btn btn-primary" type="submit">Ver paquetes VIP</button>
           </div>
         </form>
       </div>
@@ -307,7 +301,7 @@
         </div>
       {% elif vip_message %}
         <p class="text-muted">
-          No hay promociones VIP activas en este momento, pero pronto tendremos sorpresas para ti 💖.
+          No hay paquetes VIP activos en este momento, pero pronto tendremos sorpresas para ti 💖.
         </p>
       {% endif %}
     </div>
@@ -320,7 +314,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
-<!-- JS para mostrar/ocultar secciones según clic -->
+<!-- JS para mostrar/ocultar secciones y actualizar horarios disponibles -->
 <script>
   document.addEventListener("DOMContentLoaded", function () {
     const sections = document.querySelectorAll(".toggle-section");
@@ -337,6 +331,7 @@
       });
     }
 
+    // Navegación por los 5 rectángulos y el menú
     triggers.forEach(function (el) {
       el.addEventListener("click", function (e) {
         e.preventDefault();
@@ -347,8 +342,74 @@
       });
     });
 
-    // Si querés que alguna se muestre por defecto al cargar:
-    // showSection("reservar");
+    // Mostrar sección inicial según lo que venga del servidor (reservar / vip / vacío)
+    const initialSection = "{{ initial_section|default:'' }}";
+    if (initialSection) {
+      showSection(initialSection);
+    }
+
+    // ---------- Lógica para actualizar horarios disponibles ----------
+    const dateInput = document.getElementById("id_date");
+    const serviceSelect = document.getElementById("id_service");
+    const timeSelect = document.getElementById("time-select");
+
+    function resetTimeSelect(message) {
+      if (!timeSelect) return;
+      timeSelect.innerHTML = "";
+      const opt = document.createElement("option");
+      opt.value = "";
+      opt.textContent = message;
+      timeSelect.appendChild(opt);
+    }
+
+    function updateTimes() {
+      if (!dateInput || !serviceSelect || !timeSelect) return;
+
+      const dateVal = dateInput.value;
+      const serviceVal = serviceSelect.value;
+
+      if (!dateVal || !serviceVal) {
+        resetTimeSelect("— Selecciona servicio y fecha —");
+        return;
+      }
+
+      const url = `/api/available-times/?date=${encodeURIComponent(dateVal)}&service=${encodeURIComponent(serviceVal)}`;
+
+      fetch(url)
+        .then(response => response.json())
+        .then(data => {
+          const times = data.times || [];
+          timeSelect.innerHTML = "";
+
+          if (!times.length) {
+            resetTimeSelect("— No hay horarios disponibles —");
+            return;
+          }
+
+          const placeholder = document.createElement("option");
+          placeholder.value = "";
+          placeholder.textContent = "— Elegí un horario —";
+          timeSelect.appendChild(placeholder);
+
+          times.forEach(function (t) {
+            const opt = document.createElement("option");
+            opt.value = t;
+            opt.textContent = t;
+            timeSelect.appendChild(opt);
+          });
+        })
+        .catch(err => {
+          console.error("Error obteniendo horarios:", err);
+          resetTimeSelect("— Error cargando horarios —");
+        });
+    }
+
+    if (dateInput) {
+      dateInput.addEventListener("change", updateTimes);
+    }
+    if (serviceSelect) {
+      serviceSelect.addEventListener("change", updateTimes);
+    }
   });
 </script>
 

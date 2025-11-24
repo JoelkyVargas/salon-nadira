@@ -243,25 +243,27 @@ def home(request):
     success = None
     vip_promotions = None
     vip_message = None
-
-    # Por defecto (GET o cualquier cosa que no sea formulario VIP):
+    initial_section = ""   # para que el front sepa qué sección mostrar al cargar
     available_times = None
 
+    # ====== POST del formulario VIP (tiene campo 'code') ======
     if request.method == "POST" and "code" in request.POST:
-        # ====== POST del formulario de CÓDIGO VIP ======
         vip_form = VipAccessForm(request.POST)
-        form = AppointmentForm()  # Form vacío para no mezclar POST
+        form = AppointmentForm()  # form de reserva limpio (para no procesar doble POST)
+        initial_section = "vip"
+
         if vip_form.is_valid():
             vip = getattr(vip_form, "vip_instance", None)
             if vip:
                 vip_promotions = Promotion.objects.filter(active=True, is_vip_only=True)
                 nombre = vip.client_name or "clienta VIP"
-                vip_message = f"Bienvenida, {nombre}. Estas son tus promociones exclusivas ✨"
+                vip_message = f"Bienvenida, {nombre}. Estos son tus paquetes exclusivos ✨"
+
     else:
         # ====== GET normal o POST de reserva de cita ======
-        # Compatibilidad server-side para re-render con selección previa
         selected_date = request.POST.get('date') if request.method == "POST" else None
         selected_service_id = request.POST.get("service") if request.method == "POST" else None
+
         service_duration = None
         if selected_service_id:
             svc = Service.objects.filter(id=selected_service_id).only("duration_minutes").first()
@@ -279,7 +281,11 @@ def home(request):
                 send_booking_notifications(ap)
             except Exception as e:
                 print("WHATSAPP send error:", e)
-            form = AppointmentForm()  # limpiamos
+            form = AppointmentForm()
+            initial_section = "reservar"
+        elif request.method == "POST":
+            # Hubo errores en el form de reserva -> seguimos mostrando la sección de reservas
+            initial_section = "reservar"
 
     services = Service.objects.filter(active=True).order_by("name")
     testimonios = (
@@ -308,5 +314,6 @@ def home(request):
             "vip_form": vip_form,
             "vip_promotions": vip_promotions,
             "vip_message": vip_message,
+            "initial_section": initial_section,
         },
     )
