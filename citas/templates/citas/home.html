@@ -4,36 +4,70 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Salón | Reservas, Servicios y Testimonios</title>
+  <title>Salón | Reservas, Servicios, Testimonios y Paquetes</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="{% static 'citas/style.css' %}">
   <style>
     .nav-link{font-weight:700}
     section{scroll-margin-top:100px}
     .hero{padding:3rem 0}
+
+    .hero-menu{
+      position:relative;
+      background-size:cover;
+      background-position:center;
+      background-repeat:no-repeat;
+      padding:3rem 0;
+    }
+    .hero-menu-fallback{
+      background:linear-gradient(135deg,#ffe6f0,#fff);
+    }
+    .hero-menu-overlay{
+      background:rgba(255,255,255,0.82);
+      padding:2rem 1rem;
+    }
+    .hero-menu-card{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      min-height:80px;
+      border-radius:16px;
+      text-decoration:none;
+      background:#ff8da1;
+      color:#fff;
+      font-weight:700;
+      box-shadow:0 8px 22px rgba(0,0,0,.15);
+      transition:transform .15s ease, box-shadow .15s ease, background .15s ease;
+    }
+    .hero-menu-card:hover{
+      transform:translateY(-3px);
+      box-shadow:0 12px 28px rgba(0,0,0,.18);
+      background:#ff7b9c;
+      color:#fff;
+    }
+    .hero-menu-title{
+      font-size:1rem;
+    }
+    @media (max-width:576px){
+      .hero-menu-card{min-height:70px;}
+      .hero-menu-title{font-size:.9rem;}
+    }
   </style>
 </head>
 <body class="bg-light">
 
-<!-- NAV -->
+<!-- NAV (SIN LOS 5 BOTONES REPETIDOS) -->
 <nav class="navbar navbar-expand-lg bg-white border-bottom sticky-top">
   <div class="container">
     <a class="navbar-brand fw-bold" href="#top" style="color:#ff8da1;">
       Centro de Belleza & Spa Nadira Fashion
     </a>
-    <button class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#nav">
-      <span class="navbar-toggler-icon"></span>
-    </button>
-    <div id="nav" class="collapse navbar-collapse">
-      <ul class="navbar-nav ms-auto">
-        </ul>
-    </div>
   </div>
 </nav>
 
 <a id="top"></a>
 
-<!-- HERO (se mantiene igual) -->
+<!-- HERO -->
 <header class="hero text-center bg-white">
   <div class="container">
     <h1 class="page-title">Agenda tu cita</h1>
@@ -41,7 +75,7 @@
   </div>
 </header>
 
-<!-- BLOQUE CENTRAL CON 5 RECTÁNGULOS -->
+<!-- MENÚ CENTRAL (5 RECTÁNGULOS) -->
 {% if background %}
 <section class="hero-menu" style="background-image: url('{{ background.image.url }}');">
 {% else %}
@@ -86,17 +120,14 @@
   </div>
 </section>
 
-<!-- RESERVAR (oculta inicialmente) -->
-<section id="reservar"
-         data-section="reservar"
+<!-- RESERVAR -->
+<section id="reservar" data-section="reservar"
          class="container py-4 toggle-section d-none">
   <div class="row justify-content-center">
     <div class="col-md-8 col-lg-6">
       <div class="card shadow-lg p-4 rounded-3">
         <h2 class="mb-3" style="color:#ff8da1;font-weight:800;">Reservar Cita</h2>
-        {% if success %}
-          <div class="alert alert-success">{{ success }}</div>
-        {% endif %}
+        {% if success %}<div class="alert alert-success">{{ success }}</div>{% endif %}
         <form method="post">
           {% csrf_token %}
           <div class="mb-3">
@@ -128,9 +159,8 @@
   </div>
 </section>
 
-<!-- SERVICIOS (oculta inicialmente) -->
-<section id="servicios"
-         data-section="servicios"
+<!-- SERVICIOS -->
+<section id="servicios" data-section="servicios"
          class="container py-5 toggle-section d-none">
   <h2 class="mb-4" style="color:#ff8da1;font-weight:800;">Servicios</h2>
   <div class="row g-4">
@@ -149,9 +179,8 @@
   </div>
 </section>
 
-<!-- TESTIMONIOS (oculta inicialmente) -->
-<section id="testimonios"
-         data-section="testimonios"
+<!-- TESTIMONIOS -->
+<section id="testimonios" data-section="testimonios"
          class="container py-5 toggle-section d-none">
   <h2 class="mb-4" style="color:#ff8da1;font-weight:800;">Testimonios</h2>
   <div class="row g-4">
@@ -165,17 +194,13 @@
               {% for p in t.photos.all %}
                 <div class="col-12 col-md-6">
                   <div class="ratio ratio-4x3 border rounded overflow-hidden">
-                    <img src="{{ p.before_image.url }}"
-                         class="w-100 h-100 object-fit-cover"
-                         alt="Antes">
+                    <img src="{{ p.before_image.url }}" class="w-100 h-100 object-fit-cover" alt="Antes">
                   </div>
                 </div>
                 {% if p.after_image %}
                 <div class="col-12 col-md-6">
                   <div class="ratio ratio-4x3 border rounded overflow-hidden">
-                    <img src="{{ p.after_image.url }}"
-                         class="w-100 h-100 object-fit-cover"
-                         alt="Después">
+                    <img src="{{ p.after_image.url }}" class="w-100 h-100 object-fit-cover" alt="Después">
                   </div>
                 </div>
                 {% endif %}
@@ -190,9 +215,8 @@
   </div>
 </section>
 
-<!-- PAQUETES (oculta inicialmente) -->
-<section id="paquetes"
-         data-section="paquetes"
+<!-- PAQUETES -->
+<section id="paquetes" data-section="paquetes"
          class="container py-5 toggle-section d-none">
   <h2 class="mb-3" style="color:#ff8da1;font-weight:800;">Paquetes</h2>
 
@@ -203,7 +227,7 @@
           <div class="card h-100 shadow-sm promo-card">
             {% if promo.image %}
               <div class="ratio ratio-4x3 mb-2 rounded overflow-hidden">
-                <img src="{{ promo.image.url }}" class="w-100 h-100 object-fit-cover" alt="{{ promo.title }}">
+                <img src="{{ promo.image.url }}" class="w-100 h-100 object-fit-cover">
               </div>
             {% endif %}
             <h5 class="fw-bold mb-1">{{ promo.title }}</h5>
@@ -220,15 +244,12 @@
       {% endfor %}
     </div>
   {% else %}
-    <p class="text-muted">
-      Muy pronto verás aquí los mejores paquetes de Nadira Fashion ✨
-    </p>
+    <p class="text-muted">No hay paquetes disponibles aún.</p>
   {% endif %}
 </section>
 
-<!-- CLIENTES VIP (oculta inicialmente) -->
-<section id="vip"
-         data-section="vip"
+<!-- VIP -->
+<section id="vip" data-section="vip"
          class="container py-5 toggle-section d-none">
   <h2 class="mb-3" style="color:#ff8da1;font-weight:800;">Clientes VIP</h2>
 
@@ -242,12 +263,9 @@
           <div class="mb-3">
             {{ vip_form.code.label_tag }}
             {{ vip_form.code }}
-            {% for err in vip_form.code.errors %}
-              <div class="text-danger small">{{ err }}</div>
-            {% endfor %}
           </div>
           <div class="d-grid">
-            <button class="btn btn-primary" type="submit">Ver paquetes VIP</button>
+            <button class="btn btn-primary" type="submit">Ver Paquetes VIP</button>
           </div>
         </form>
       </div>
@@ -255,9 +273,7 @@
 
     <div class="col-md-6 col-lg-8">
       {% if vip_message %}
-        <div class="alert alert-success mb-3">
-          {{ vip_message }}
-        </div>
+        <div class="alert alert-success mb-3">{{ vip_message }}</div>
       {% endif %}
 
       {% if vip_promotions %}
@@ -267,7 +283,7 @@
               <div class="card h-100 shadow-sm promo-card vip-card">
                 {% if promo.image %}
                   <div class="ratio ratio-4x3 mb-2 rounded overflow-hidden">
-                    <img src="{{ promo.image.url }}" class="w-100 h-100 object-fit-cover" alt="{{ promo.title }}">
+                    <img src="{{ promo.image.url }}" class="w-100 h-100 object-fit-cover">
                   </div>
                 {% endif %}
                 <h5 class="fw-bold mb-1">{{ promo.title }}</h5>
@@ -284,10 +300,6 @@
             </div>
           {% endfor %}
         </div>
-      {% elif vip_message %}
-        <p class="text-muted">
-          No hay paquetes VIP activos en este momento, pero pronto tendremos sorpresas para ti 💖.
-        </p>
       {% endif %}
     </div>
   </div>
@@ -299,9 +311,9 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
-<!-- JS para mostrar/ocultar secciones y actualizar horarios disponibles -->
 <script>
   document.addEventListener("DOMContentLoaded", function () {
+    // ---------- TOGGLE DE SECCIONES ----------
     const sections = document.querySelectorAll(".toggle-section");
     const triggers = document.querySelectorAll(".section-link");
 
@@ -316,7 +328,6 @@
       });
     }
 
-    // Navegación por los 5 rectángulos y el menú
     triggers.forEach(function (el) {
       el.addEventListener("click", function (e) {
         e.preventDefault();
@@ -327,15 +338,12 @@
       });
     });
 
-    // Mostrar sección inicial según lo que venga del servidor (reservar / vip / vacío)
-    const initialSection = "{{ initial_section|default:'' }}";
-    if (initialSection) {
-      showSection(initialSection);
-    }
+    // Si querés abrir "reservar" por defecto al cargar:
+    // showSection("reservar");
 
-    // ---------- Lógica para actualizar horarios disponibles ----------
-    const dateInput = document.getElementById("id_date");
-    const serviceSelect = document.getElementById("id_service");
+    // ---------- HORARIOS DISPONIBLES (DROPDOWN) ----------
+    const serviceInput = document.getElementById("id_service");
+    const dateInput = document.getElementById("date-input");
     const timeSelect = document.getElementById("time-select");
 
     function resetTimeSelect(message) {
@@ -347,36 +355,35 @@
       timeSelect.appendChild(opt);
     }
 
-    function updateTimes() {
-      if (!dateInput || !serviceSelect || !timeSelect) return;
+    function loadTimes() {
+      if (!serviceInput || !dateInput || !timeSelect) return;
 
-      const dateVal = dateInput.value;
-      const serviceVal = serviceSelect.value;
+      const date = dateInput.value;
+      const service = serviceInput.value;
 
-      if (!dateVal || !serviceVal) {
+      if (!date || !service) {
         resetTimeSelect("— Selecciona servicio y fecha —");
         return;
       }
 
-      const url = `/api/available-times/?date=${encodeURIComponent(dateVal)}&service=${encodeURIComponent(serviceVal)}`;
-
-      fetch(url)
+      fetch(`/api/available-times/?date=${date}&service=${service}`)
         .then(response => response.json())
         .then(data => {
-          const times = data.times || [];
           timeSelect.innerHTML = "";
 
-          if (!times.length) {
+          if (!data.times || data.times.length === 0) {
             resetTimeSelect("— No hay horarios disponibles —");
             return;
           }
 
           const placeholder = document.createElement("option");
           placeholder.value = "";
-          placeholder.textContent = "— Elegí un horario —";
+          placeholder.textContent = "— Selecciona hora —";
+          placeholder.disabled = true;
+          placeholder.selected = true;
           timeSelect.appendChild(placeholder);
 
-          times.forEach(function (t) {
+          data.times.forEach(function (t) {
             const opt = document.createElement("option");
             opt.value = t;
             opt.textContent = t;
@@ -384,19 +391,14 @@
           });
         })
         .catch(err => {
-          console.error("Error obteniendo horarios:", err);
-          resetTimeSelect("— Error cargando horarios —");
+          console.error("Error cargando horarios", err);
+          resetTimeSelect("— Error al cargar horarios —");
         });
     }
 
-    if (dateInput) {
-      dateInput.addEventListener("change", updateTimes);
-    }
-    if (serviceSelect) {
-      serviceSelect.addEventListener("change", updateTimes);
+    if (serviceInput && dateInput) {
+      serviceInput.addEventListener("change", loadTimes);
+      dateInput.addEventListener("change", loadTimes);
     }
   });
 </script>
-
-</body>
-</html>
