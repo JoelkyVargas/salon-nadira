@@ -1,45 +1,76 @@
-{% load static %}
+{% load static beauty_extras %}
 <!doctype html>
 <html lang="es">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Salón | Reservas, Servicios, Paquetes y Testimonios</title>
+  <title>Salón | Reservas, Servicios y Paquetes VIP</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="{% static 'citas/style.css' %}">
   <style>
     .nav-link{font-weight:700}
     section{scroll-margin-top:100px}
     .hero{padding:3rem 0}
+    .hero-menu{
+      position:relative;
+      background-size:cover;
+      background-position:center;
+      background-repeat:no-repeat;
+      padding:3rem 0;
+    }
+    .hero-menu-fallback{
+      background:linear-gradient(135deg,#ffe5ee,#fff);
+    }
+    .hero-menu-overlay{
+      background:rgba(255,255,255,0.78);
+      padding:2rem 1rem;
+    }
+    .hero-menu-card{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      min-height:80px;
+      border-radius:1rem;
+      background:#ff8da1;
+      color:#fff;
+      text-decoration:none;
+      box-shadow:0 6px 18px rgba(0,0,0,.12);
+      transition:transform .15s ease, box-shadow .15s ease, background .15s ease;
+    }
+    .hero-menu-card:hover{
+      transform:translateY(-3px);
+      box-shadow:0 10px 28px rgba(0,0,0,.18);
+      background:#ff7b9c;
+      color:#fff;
+    }
+    .hero-menu-title{
+      font-weight:700;
+      font-size:1rem;
+    }
   </style>
 </head>
 <body class="bg-light">
 
-<!-- NAV -->
+<!-- NAV: solo el nombre del salón (sin botones repetidos) -->
 <nav class="navbar navbar-expand-lg bg-white border-bottom sticky-top">
   <div class="container">
     <a class="navbar-brand fw-bold" href="#top" style="color:#ff8da1;">
-      Centro de Belleza & Spa Nadira Fashion
+      Centro de Belleza &amp; Spa Nadira Fashion
     </a>
-    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#nav">
-      <span class="navbar-toggler-icon"></span>
-    </button>
-    <!-- ⛔️ Ya NO ponemos los 5 botones repetidos aquí -->
-    <div id="nav" class="collapse navbar-collapse"></div>
   </div>
 </nav>
 
 <a id="top"></a>
 
-<!-- HERO -->
+<!-- HERO (se mantiene igual) -->
 <header class="hero text-center bg-white">
   <div class="container">
     <h1 class="page-title">Agenda tu cita</h1>
-    <p class="text-muted">Reserva rápido, revisa servicios y mira resultados reales.</p>
+    <p class="text-muted">Reserva rápido, revisa servicios, mirá paquetes y resultados reales.</p>
   </div>
 </header>
 
-<!-- HERO MENU con 5 bloques -->
+<!-- BLOQUE CENTRAL CON 5 RECTÁNGULOS -->
 {% if background %}
 <section class="hero-menu" style="background-image: url('{{ background.image.url }}');">
 {% else %}
@@ -84,7 +115,7 @@
   </div>
 </section>
 
-<!-- RESERVAR (oculta inicialmente) -->
+<!-- RESERVAR (oculta inicialmente, se muestra con clic o tras reservar) -->
 <section id="reservar"
          data-section="reservar"
          class="container py-4 toggle-section d-none">
@@ -92,10 +123,12 @@
     <div class="col-md-8 col-lg-6">
       <div class="card shadow-lg p-4 rounded-3">
         <h2 class="mb-3" style="color:#ff8da1;font-weight:800;">Reservar Cita</h2>
-        {% if success %}<div class="alert alert-success">{{ success }}</div>{% endif %}
+        {% if success %}
+          <div class="alert alert-success">{{ success }}</div>
+        {% endif %}
         <form method="post">
           {% csrf_token %}
-          <input type="hidden" name="form_type" value="booking">
+          <input type="hidden" name="action" value="booking">
           <div class="mb-3">
             <label class="form-label">Nombre</label>
             {{ form.customer_name }}
@@ -115,6 +148,13 @@
           <div class="mb-3">
             <label class="form-label">Hora</label>
             {{ form.time }}
+            <datalist id="available_times">
+              {% if available_times %}
+                {% for t in available_times %}
+                  <option value="{{ t }}"></option>
+                {% endfor %}
+              {% endif %}
+            </datalist>
           </div>
           <div class="d-grid">
             <button class="btn btn-primary" type="submit">Confirmar Reserva</button>
@@ -125,7 +165,7 @@
   </div>
 </section>
 
-<!-- SERVICIOS -->
+<!-- SERVICIOS (oculta inicialmente) -->
 <section id="servicios"
          data-section="servicios"
          class="container py-5 toggle-section d-none">
@@ -138,6 +178,9 @@
           {% if s.description %}
             <p class="text-muted mb-2">{{ s.description }}</p>
           {% endif %}
+          {% if s.duration_minutes %}
+            <span class="badge text-bg-light">~{{ s.duration_minutes }} min</span>
+          {% endif %}
         </div>
       </div>
     {% empty %}
@@ -146,7 +189,7 @@
   </div>
 </section>
 
-<!-- TESTIMONIOS -->
+<!-- TESTIMONIOS (oculta inicialmente) -->
 <section id="testimonios"
          data-section="testimonios"
          class="container py-5 toggle-section d-none">
@@ -168,13 +211,13 @@
                   </div>
                 </div>
                 {% if p.after_image %}
-                <div class="col-12 col-md-6">
-                  <div class="ratio ratio-4x3 border rounded overflow-hidden">
-                    <img src="{{ p.after_image.url }}"
-                         class="w-100 h-100 object-fit-cover"
-                         alt="Después">
+                  <div class="col-12 col-md-6">
+                    <div class="ratio ratio-4x3 border rounded overflow-hidden">
+                      <img src="{{ p.after_image.url }}"
+                           class="w-100 h-100 object-fit-cover"
+                           alt="Después">
+                    </div>
                   </div>
-                </div>
                 {% endif %}
               {% endfor %}
             </div>
@@ -187,103 +230,143 @@
   </div>
 </section>
 
-<!-- PAQUETES -->
+<!-- PAQUETES (públicos, oculta inicialmente) -->
 <section id="paquetes"
          data-section="paquetes"
          class="container py-5 toggle-section d-none">
   <h2 class="mb-3" style="color:#ff8da1;font-weight:800;">Paquetes</h2>
-  <div class="row g-4">
-    {% for p in public_promos %}
-      <div class="col-12 col-md-6 col-lg-4">
-        <div class="card h-100 shadow-sm p-3">
-          {% if p.image %}
-            <div class="ratio ratio-4x3 mb-2 rounded overflow-hidden">
-              <img src="{{ p.image.url }}" class="w-100 h-100 object-fit-cover" alt="{{ p.title }}">
-            </div>
-          {% endif %}
-          <h5 class="fw-bold mb-1">{{ p.title }}</h5>
-          {% if p.description %}
-            <p class="text-muted mb-2">{{ p.description }}</p>
-          {% endif %}
-          <span class="badge text-bg-light">
-            {{ p.display_price }}
-          </span>
+
+  {% if public_packages %}
+    <div class="row g-4">
+      {% for pkg in public_packages %}
+        <div class="col-12 col-md-6 col-lg-4">
+          <div class="card h-100 shadow-sm p-3">
+            <h5 class="fw-bold mb-1">{{ pkg.title }}</h5>
+
+            {% if pkg.description %}
+              <p class="text-muted mb-2">{{ pkg.description }}</p>
+            {% endif %}
+
+            {% if pkg.image %}
+              <div class="ratio ratio-4x3 mb-2 border rounded overflow-hidden">
+                <img src="{{ pkg.image.url }}"
+                     alt="{{ pkg.title }}"
+                     class="w-100 h-100 object-fit-cover">
+              </div>
+            {% endif %}
+
+            {% if pkg.show_price %}
+              <p class="fw-semibold mb-0">
+                ₡ {{ pkg.price | price_dots }}
+              </p>
+            {% else %}
+              <p class="text-muted mb-0">
+                Consultar precio con propietaria
+              </p>
+            {% endif %}
+          </div>
         </div>
-      </div>
-    {% empty %}
-      <p class="text-muted">Pronto estaremos anunciando nuestros paquetes especiales.</p>
-    {% endfor %}
-  </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p class="text-muted">
+      Aún no hay paquetes configurados.
+    </p>
+  {% endif %}
 </section>
 
-<!-- CLIENTES VIP -->
+<!-- CLIENTES VIP (oculta inicialmente) -->
 <section id="vip"
          data-section="vip"
          class="container py-5 toggle-section d-none">
   <h2 class="mb-3" style="color:#ff8da1;font-weight:800;">Clientes VIP</h2>
 
-  <div class="row mb-4">
-    <div class="col-md-6">
-      <div class="card p-3 shadow-sm">
-        <p class="mb-2 text-muted">
-          Si sos clienta VIP, ingresá tu código para ver paquetes exclusivos.
-        </p>
-        <form method="post">
-          {% csrf_token %}
-          <input type="hidden" name="form_type" value="vip">
-          <div class="input-group">
-            <input type="text"
-                   name="vip_code"
-                   class="form-control"
-                   placeholder="Código VIP"
-                   value="{{ vip_code_entered }}">
-            <button class="btn btn-primary" type="submit">Ver Paquetes VIP</button>
-          </div>
-        </form>
-        {% if vip_error %}
-          <div class="alert alert-danger mt-3 mb-0">{{ vip_error }}</div>
-        {% endif %}
-      </div>
-    </div>
-  </div>
+  <!-- Línea elegante con diamante -->
+  <p class="mb-3 fw-semibold" style="color:#d4af37;">
+    💎 Si sos clienta VIP
+  </p>
 
-  <div class="row g-4">
-    {% if vip_promos %}
-      {% for p in vip_promos %}
+  <!-- Formulario para ingresar código VIP -->
+  <form method="post" class="row g-2 align-items-end mb-4">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="vip">
+    <div class="col-12 col-md-4">
+      <label class="form-label">Tu código VIP</label>
+      <input type="text"
+             name="vip_code"
+             class="form-control"
+             placeholder="Ej: 1234">
+    </div>
+    <div class="col-12 col-md-3">
+      <button class="btn btn-primary w-100" type="submit">
+        Ver paquetes VIP
+      </button>
+    </div>
+    {% if vip_error %}
+      <div class="col-12 mt-2">
+        <div class="alert alert-danger mb-0">
+          {{ vip_error }}
+        </div>
+      </div>
+    {% endif %}
+  </form>
+
+  {% if vip_packages %}
+    <!-- Saludo dinámico con nombre del código -->
+    <p class="mb-3 fw-semibold" style="color:#d4af37;">
+      Bienvenida, {{ vip_client_name|default:"Cliente VIP" }}. Estos son tus paquetes exclusivos ✨
+    </p>
+
+    <div class="row g-4">
+      {% for pkg in vip_packages %}
         <div class="col-12 col-md-6 col-lg-4">
           <div class="card h-100 shadow-sm p-3">
-            {% if p.image %}
-              <div class="ratio ratio-4x3 mb-2 rounded overflow-hidden">
-                <img src="{{ p.image.url }}" class="w-100 h-100 object-fit-cover" alt="{{ p.title }}">
+            <span class="badge rounded-pill mb-2"
+                  style="background-color:#d4af37;color:#fff;">
+              Exclusivo VIP
+            </span>
+
+            <h5 class="fw-bold mb-1">{{ pkg.title }}</h5>
+
+            {% if pkg.description %}
+              <p class="text-muted mb-2">{{ pkg.description }}</p>
+            {% endif %}
+
+            {% if pkg.image %}
+              <div class="ratio ratio-4x3 mb-2 border rounded overflow-hidden">
+                <img src="{{ pkg.image.url }}"
+                     alt="{{ pkg.title }}"
+                     class="w-100 h-100 object-fit-cover">
               </div>
             {% endif %}
-            <h5 class="fw-bold mb-1">{{ p.title }}</h5>
-            {% if p.description %}
-              <p class="text-muted mb-2">{{ p.description }}</p>
+
+            {% if pkg.show_price %}
+              <p class="fw-semibold mb-0">
+                ₡ {{ pkg.price|price_dots }}
+              </p>
+            {% else %}
+              <p class="text-muted mb-0">
+                Consultar precio con propietaria
+              </p>
             {% endif %}
-            <span class="badge text-bg-light">
-              {{ p.display_price }}
-            </span>
           </div>
         </div>
       {% endfor %}
-    {% elif vip_error %}
-      <!-- Si hay error, ya lo mostramos arriba -->
-    {% else %}
-      <p class="text-muted">
-        Ingresá tu código VIP para ver los paquetes exclusivos.
-      </p>
-    {% endif %}
-  </div>
+    </div>
+  {% else %}
+    <p class="text-muted">
+      Una vez ingreses tu código VIP válido, verás aquí tus paquetes exclusivos.
+    </p>
+  {% endif %}
 </section>
 
 <footer class="py-4 text-center text-muted">
-  <small>© {{ now|date:"Y" }} Salón Nadira</small>
+  <small>© {{ now|date:"Y" }} Centro de Belleza &amp; Spa Nadira Fashion</small>
 </footer>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
-<!-- JS: mostrar/ocultar secciones -->
+<!-- JS: mostrar/ocultar secciones según clic o según initial_section -->
 <script>
   document.addEventListener("DOMContentLoaded", function () {
     const sections = document.querySelectorAll(".toggle-section");
@@ -300,6 +383,7 @@
       });
     }
 
+    // Click en los “botones”
     triggers.forEach(function (el) {
       el.addEventListener("click", function (e) {
         e.preventDefault();
@@ -310,16 +394,14 @@
       });
     });
 
-    // Mostrar sección inicial después de POST (ej. VIP)
+    // Si el servidor indicó una sección inicial (por ejemplo, tras enviar código VIP)
     const initialSection = "{{ initial_section|default:'' }}";
     if (initialSection) {
       showSection(initialSection);
     }
-
-    // Si querés que al cargar por primera vez se vea Reservar:
-    // else { showSection("reservar"); }
   });
 </script>
 
 </body>
 </html>
+
