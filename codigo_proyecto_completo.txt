@@ -31121,6 +31121,14 @@ a[0]);if(-1<C(this.captureNames,a[1]))throw new SyntaxError("Cannot use same nam
 
 >>> ARCHIVO: citas\admin.py
 --------------------------------------------------------------------------------
+# -*- coding: utf-8 -*-
+"""
+Created on Tue Oct 28 21:31:45 2025
+
+@author: jvz16
+"""
+
+
 # salon/citas/admin.py
 from django.contrib import admin
 from django import forms
@@ -31128,6 +31136,7 @@ from django.urls import path, reverse
 from django.shortcuts import render
 from datetime import datetime as dt
 from django.utils.html import format_html
+from django.utils.crypto import get_random_string
 
 from .models import (
     ServiceCategory,
@@ -31137,6 +31146,8 @@ from .models import (
     Testimonial,
     BeforeAfter,
     HomeBackground,
+    VipCode,
+    Package,
 )
 
 # ====== Branding del Admin ======
@@ -31306,6 +31317,52 @@ class HomeBackgroundAdmin(admin.ModelAdmin):
             return False
         return super().has_add_permission(request)
 
+
+# ====== VIP CODES ======
+@admin.register(VipCode)
+class VipCodeAdmin(admin.ModelAdmin):
+    list_display = ("code", "name", "active", "created_at")
+    list_filter = ("active",)
+    search_fields = ("code", "name")
+    ordering = ("-created_at",)
+
+    def save_model(self, request, obj, form, change):
+        """
+        Si el código viene vacío, se genera uno numérico de 4 dígitos,
+        asegurando que sea único.
+        """
+        if not obj.code:
+            while True:
+                candidate = get_random_string(4, allowed_chars="0123456789")
+                if not VipCode.objects.filter(code=candidate).exists():
+                    obj.code = candidate
+                    break
+        super().save_model(request, obj, form, change)
+
+
+# ====== PACKAGES (Paquetes / antes "Promociones") ======
+@admin.register(Package)
+class PackageAdmin(admin.ModelAdmin):
+    list_display = ("title", "vip_only", "active", "show_price", "price", "created_at")
+    list_filter = ("vip_only", "active", "show_price")
+    search_fields = ("title", "description")
+    ordering = ("-created_at",)
+    list_editable = ("vip_only", "active", "show_price")
+
+    fieldsets = (
+        (None, {
+            "fields": ("title", "description", "image")
+        }),
+        ("Precio", {
+            "fields": ("price", "show_price"),
+            "description": "Si desmarcás 'Mostrar precio', en la web se verá 'Consultar precio con propietaria'.",
+        }),
+        ("Visibilidad", {
+            "fields": ("vip_only", "active"),
+            "description": "Marcá 'Solo VIP' para mostrar el paquete únicamente a clientas con código VIP válido.",
+        }),
+    )
+
 ================================================================================
 
 >>> ARCHIVO: citas\apps.py
@@ -31385,6 +31442,16 @@ a.addlink:hover, .object-tools a:hover {
 
 >>> ARCHIVO: citas\forms.py
 --------------------------------------------------------------------------------
+# -*- coding: utf-8 -*-
+"""
+Created on Tue Oct 28 21:31:45 2025
+
+@author: jvz16
+"""
+
+
+
+# salon/citas/forms.py
 from datetime import datetime, timedelta, time as dtime
 from django import forms
 from django.utils import timezone
@@ -31394,6 +31461,7 @@ from .models import Appointment, BlockedSlot, Service
 OPEN_HOUR = 8     # 08:00
 CLOSE_HOUR = 20   # 20:00
 BUSINESS_HOURS = range(OPEN_HOUR, CLOSE_HOUR + 1)  # 08..20
+
 
 class AppointmentForm(forms.ModelForm):
     """
@@ -31417,11 +31485,19 @@ class AppointmentForm(forms.ModelForm):
         model = Appointment
         fields = ['customer_name', 'customer_phone', 'service', 'date', 'time']
         widgets = {
-            'customer_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Tu nombre'}),
-            'customer_phone': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Tu teléfono'}),
+            'customer_name': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Tu nombre'
+            }),
+            'customer_phone': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Tu teléfono'
+            }),
             'date': forms.DateInput(attrs={
-                'type': 'date', 'class': 'form-control', 'id': 'date-input',
-                'min': timezone.now().date().isoformat()
+                'type': 'date',
+                'class': 'form-control',
+                'id': 'date-input',
+                'min': timezone.now().date().isoformat(),
             }),
         }
 
@@ -31454,7 +31530,12 @@ class AppointmentForm(forms.ModelForm):
             raise forms.ValidationError("Hora inválida.")
 
         # 1) Día bloqueado
-        if BlockedSlot.objects.filter(date=date, start_time__isnull=True, end_time__isnull=True, time__isnull=True).exists():
+        if BlockedSlot.objects.filter(
+            date=date,
+            start_time__isnull=True,
+            end_time__isnull=True,
+            time__isnull=True
+        ).exists():
             raise forms.ValidationError("Ese día está bloqueado. Elegí otra fecha.")
 
         # 2) Bloqueo puntual
@@ -31462,14 +31543,21 @@ class AppointmentForm(forms.ModelForm):
             raise forms.ValidationError("Ese horario está bloqueado. Elegí otra hora.")
 
         # 3) Bloqueo por rango
-        for b in BlockedSlot.objects.filter(date=date, start_time__isnull=False, end_time__isnull=False):
+        for b in BlockedSlot.objects.filter(
+            date=date,
+            start_time__isnull=False,
+            end_time__isnull=False
+        ):
             if b.start_time <= start_time < b.end_time:
-                raise forms.ValidationError("Ese horario cae dentro de un rango bloqueado. Elegí otra hora.")
+                raise forms.ValidationError(
+                    "Ese horario cae dentro de un rango bloqueado. Elegí otra hora."
+                )
 
         # 4) Dentro de horario laboral (en punto)
         if start_time.hour not in BUSINESS_HOURS or start_time.minute != 0:
             raise forms.ValidationError(
-                f"El horario debe ser en horas en punto entre {OPEN_HOUR:02}:00 y {CLOSE_HOUR:02}:00."
+                f"El horario debe ser en horas en punto entre "
+                f"{OPEN_HOUR:02}:00 y {CLOSE_HOUR:02}:00."
             )
 
         # 5) Debe terminar antes del cierre
@@ -31478,7 +31566,9 @@ class AppointmentForm(forms.ModelForm):
         end_dt = start_dt + timedelta(minutes=duration_min)
         close_dt = datetime.combine(date, dtime(CLOSE_HOUR, 0))
         if end_dt > close_dt:
-            raise forms.ValidationError("El servicio no termina antes del cierre. Elegí otra hora.")
+            raise forms.ValidationError(
+                "El servicio no termina antes del cierre. Elegí otra hora."
+            )
 
         # 6) No solapar con otras citas (según duración de cada una)
         for ap in Appointment.objects.select_related("service").filter(date=date):
@@ -31486,7 +31576,9 @@ class AppointmentForm(forms.ModelForm):
             ap_start = datetime.combine(date, ap.time)
             ap_end = ap_start + timedelta(minutes=ap_dur)
             if start_dt < ap_end and ap_start < end_dt:
-                raise forms.ValidationError("Ese horario se solapa con otra cita. Elegí otra hora.")
+                raise forms.ValidationError(
+                    "Ese horario se solapa con otra cita. Elegí otra hora."
+                )
 
         cleaned['time'] = start_time
         return cleaned
@@ -31519,7 +31611,7 @@ class ServiceCategory(models.Model):
 
 class Service(models.Model):
     name = models.CharField(max_length=100, unique=True)
-    # NUEVO: categoría opcional
+    # categoría opcional
     category = models.ForeignKey(
         ServiceCategory,
         on_delete=models.SET_NULL,
@@ -31616,6 +31708,59 @@ class HomeBackground(models.Model):
 
     def __str__(self):
         return f"Fondo {self.pk}"
+
+
+class VipCode(models.Model):
+    """
+    Código VIP para una clienta, que da acceso a paquetes exclusivos.
+    """
+    code = models.CharField("Código VIP", max_length=10, unique=True)
+    name = models.CharField("Nombre de la clienta", max_length=100)
+    active = models.BooleanField("Activo", default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Código VIP"
+        verbose_name_plural = "Códigos VIP"
+
+    def __str__(self):
+        estado = "activo" if self.active else "inactivo"
+        return f"{self.code} - {self.name} ({estado})"
+
+
+class Package(models.Model):
+    """
+    Paquetes que se muestran en la web:
+      - Públicos
+      - Exclusivos para clientes VIP
+    """
+    title = models.CharField("Título", max_length=150)
+    description = models.TextField("Descripción", blank=True)
+    image = models.ImageField(upload_to="packages/", blank=True, null=True)
+
+    price = models.PositiveIntegerField("Precio (CRC)", blank=True, null=True)
+    show_price = models.BooleanField(
+        "Mostrar precio en la web",
+        default=True,
+        help_text="Si se desmarca, se mostrará 'Consultar precio con propietaria'.",
+    )
+
+    vip_only = models.BooleanField(
+        "Solo VIP",
+        default=False,
+        help_text="Si está marcado, este paquete solo se mostrará a clientas VIP.",
+    )
+
+    active = models.BooleanField("Activo", default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Paquete"
+        verbose_name_plural = "Paquetes"
+
+    def __str__(self):
+        scope = "VIP" if self.vip_only else "Público"
+        return f"{self.title} ({scope})"
 
 ================================================================================
 
@@ -31761,11 +31906,21 @@ def get_available_slots(date):
 
 >>> ARCHIVO: citas\views.py
 --------------------------------------------------------------------------------
+# -*- coding: utf-8 -*-
+"""
+Created on Tue Oct 28 21:31:45 2025
+
+@author: jvz16
+"""
+
+# salon/citas/views.py
 from datetime import time as dtime, datetime, timedelta
+
 from django.http import JsonResponse
 from django.shortcuts import render
+from django.utils import timezone
+
 from .forms import AppointmentForm
-#from .models import Appointment, BlockedSlot, ServiceCategory, Service, Testimonial
 from .models import (
     ServiceCategory,
     Service,
@@ -31773,23 +31928,29 @@ from .models import (
     BlockedSlot,
     Testimonial,
     BeforeAfter,
-    HomeBackground )
-
-from .whatsapp import send_booking_notifications  # ← NUEVO
+    HomeBackground,
+    VipCode,
+    Package,
+)
+from .whatsapp import send_booking_notifications  # WhatsApp notificaciones
 
 # 🕘 Configuración de horario laboral
 OPEN_HOUR = 8
 CLOSE_HOUR = 20
 BUSINESS_HOURS = range(OPEN_HOUR, CLOSE_HOUR + 1)  # 08..20
 
+
 # ---------- Utilidades ----------
+
 def _all_times():
     """['08:00','09:00',...,'20:00'] (horas en punto)."""
     return [dtime(hour=h).strftime("%H:%M") for h in BUSINESS_HOURS]
 
+
 def _time_in_range(t, start, end):
     """True si t está en [start, end) (fin abierto)."""
     return (start is not None and end is not None and start <= t < end)
+
 
 def _available_times_for_date(date_str, service_duration=None):
     """
@@ -31797,7 +31958,7 @@ def _available_times_for_date(date_str, service_duration=None):
     excluyendo:
       - Citas existentes (considerando su duración)
       - Bloqueos por día completo, rango y puntuales
-      - Y, si viene service_duration, horas que no caben antes del cierre
+      - Y, si viene service_duration, horas que no caben antes del cierre.
     """
     all_slots = _all_times()
     if not date_str:
@@ -31851,37 +32012,37 @@ def _available_times_for_date(date_str, service_duration=None):
 
     return free
 
-# ---------- Vistas ----------
+
+# ---------- Vistas independientes (reservas, calendario, JSON, servicios, testimonios) ----------
+
 def reservar_cita(request):
     """
+    Vista independiente solo para reservas (URL /reservar/).
     Renderiza el formulario y guarda si es válido.
-    - El <select> de 'time' se llena por JS consultando /api/available-times/
-      (y en POST conservamos compatibilidad server-side).
-    - Tras guardar, enviamos WhatsApp a propietaria y cliente.
+    Tras guardar, envía WhatsApp a propietaria y cliente.
     """
     success = None
 
-    # Compatibilidad server-side para re-render con selección previa:
     selected_date = request.POST.get("date") if request.method == "POST" else None
     selected_service_id = request.POST.get("service") if request.method == "POST" else None
     service_duration = None
+
     if selected_service_id:
         svc = Service.objects.filter(id=selected_service_id).only("duration_minutes").first()
         if svc:
             service_duration = getattr(svc, "duration_minutes", 60)
 
     available_times = _available_times_for_date(selected_date, service_duration) if selected_date else None
+
     form = AppointmentForm(request.POST or None, available_times=available_times)
 
     if request.method == "POST" and form.is_valid():
         ap = form.save()
         success = "¡Cita reservada con éxito!"
-        # === ENVÍO WHATSAPP INMEDIATO ===
         try:
             send_booking_notifications(ap)
         except Exception as e:
             print("WHATSAPP send error:", e)
-        # Reset del form
         form = AppointmentForm(available_times=None)
 
     return render(
@@ -31893,11 +32054,14 @@ def reservar_cita(request):
         },
     )
 
+
 def calendar_view(request):
     return render(request, "citas/calendar.html")
 
+
 def appointments_json(request):
     events = []
+
     # Citas
     for ap in Appointment.objects.select_related("service").all():
         duration_min = getattr(ap.service, "duration_minutes", 60) if getattr(ap, "service", None) else 60
@@ -31910,6 +32074,7 @@ def appointments_json(request):
             "end": end_dt.isoformat(),
             "color": color,
         })
+
     # Bloqueos como fondo
     for b in BlockedSlot.objects.all():
         if b.start_time and b.end_time:
@@ -31921,6 +32086,7 @@ def appointments_json(request):
         else:
             start_dt = datetime.combine(b.date, dtime(0, 0))
             end_dt = datetime.combine(b.date, dtime(23, 59))
+
         events.append({
             "title": f"Bloqueo{f' - {b.reason}' if getattr(b, 'reason', '') else ''}",
             "start": start_dt.isoformat(),
@@ -31928,7 +32094,9 @@ def appointments_json(request):
             "display": "background",
             "color": "#adb5bd",
         })
+
     return JsonResponse(events, safe=False)
+
 
 def available_times_json(request):
     """
@@ -31939,6 +32107,7 @@ def available_times_json(request):
     date_str = request.GET.get("date")
     service_id = request.GET.get("service")
     service_duration = None
+
     if service_id:
         svc = Service.objects.filter(id=service_id).only("duration_minutes").first()
         if svc:
@@ -31947,21 +32116,24 @@ def available_times_json(request):
     times = _available_times_for_date(date_str, service_duration=service_duration) if date_str else []
     return JsonResponse({"times": times})
 
+
 def appointments_list(request):
     qs = Appointment.objects.select_related("service").order_by("date", "time")
     return render(request, "citas/appointments_list.html", {"appointments": qs})
 
 
 def servicios(request):
+    """
+    Página independiente /servicios/ con servicios agrupados por categoría (hasta 3)
+    y “Otros” para los servicios sin categoría.
+    """
     categorias = list(ServiceCategory.objects.order_by("name")[:3])
     grupos = []
 
-    # Las 3 categorías definidas por tu esposa en el admin
     for cat in categorias:
         qs = Service.objects.filter(active=True, category=cat).order_by("name")
         grupos.append((cat.name, qs))
 
-    # Servicios sin categoría -> “Otros”
     sin_cat = Service.objects.filter(active=True, category__isnull=True).order_by("name")
     if sin_cat.exists():
         grupos.append(("Otros", sin_cat))
@@ -31970,27 +32142,97 @@ def servicios(request):
 
 
 def testimonios(request):
-    items = Testimonial.objects.filter(active=True).prefetch_related("photos").order_by("-created_at")
+    items = (
+        Testimonial.objects.filter(active=True)
+        .prefetch_related("photos")
+        .order_by("-created_at")
+    )
     return render(request, "citas/testimonios.html", {"items": items})
 
 
+# ---------- HOME unificada (Reservar + Servicios + Testimonios + Paquetes + VIP) ----------
+
 def home(request):
-    form = AppointmentForm(request.POST or None)
-    selected_date = request.POST.get('date') if request.method == "POST" else None
-    available_times = _available_times_for_date(selected_date)
+    """
+    Página principal con:
+      - Bloque de 5 “botones” (Reservas, Servicios, Testimonios, Paquetes, Clientes VIP)
+      - Secciones ocultas que se muestran al hacer clic
+      - Formulario de reservas (con WhatsApp)
+      - Paquetes públicos y Paquetes VIP
+      - Código VIP que muestra directamente la sección VIP al enviar.
+    """
+    # Para controlar qué sección se muestra inmediatamente tras un POST
+    initial_section = None
+
+    # --- Reservas ---
     success = None
-    if request.method == "POST" and form.is_valid():
-        form.save()
-        success = "¡Cita reservada con éxito!"
+    selected_date = None
+    selected_service_id = None
+    service_duration = None
+
+    if request.method == "POST" and request.POST.get("action") == "booking":
+        selected_date = request.POST.get("date")
+        selected_service_id = request.POST.get("service")
+
+        if selected_service_id:
+            svc = Service.objects.filter(id=selected_service_id).only("duration_minutes").first()
+            if svc:
+                service_duration = getattr(svc, "duration_minutes", 60)
+
+        available_times = _available_times_for_date(selected_date, service_duration) if selected_date else None
+        form = AppointmentForm(request.POST or None, available_times=available_times)
+
+        if form.is_valid():
+            ap = form.save()
+            success = "¡Cita reservada con éxito!"
+            try:
+                send_booking_notifications(ap)
+            except Exception as e:
+                print("WHATSAPP send error:", e)
+            form = AppointmentForm(available_times=None)
+            initial_section = "reservar"  # mostrar sección reservas tras éxito
+    else:
+        # GET o POST de otro tipo (VIP)
+        # No recalculamos horas aquí; el dropdown se completará vía JS /api/available-times/
         form = AppointmentForm()
+        available_times = None
 
+    # --- Paquetes públicos ---
+    public_packages = Package.objects.filter(active=True, vip_only=False).order_by("title")
+
+    # --- VIP: validación de código y paquetes VIP ---
+    vip_client_name = None
+    vip_packages = None
+    vip_error = None
+
+    if request.method == "POST" and request.POST.get("action") == "vip":
+        code_str = request.POST.get("vip_code", "").strip()
+        if code_str:
+            vip = VipCode.objects.filter(code=code_str, active=True).first()
+            if vip:
+                vip_client_name = vip.name  # o el campo que hayas definido en VipCode
+                vip_packages = Package.objects.filter(active=True, vip_only=True).order_by("title")
+                initial_section = "vip"  # mostrar directamente Clientes VIP
+            else:
+                vip_error = "Código VIP inválido o inactivo."
+                initial_section = "vip"
+        else:
+            vip_error = "Por favor ingresá tu código VIP."
+            initial_section = "vip"
+
+    # --- Servicios y testimonios para la vista unificada ---
     services = Service.objects.filter(active=True).order_by("name")
-    testimonios = (Testimonial.objects.filter(active=True)
-                   .prefetch_related("photos")
-                   .order_by("-created_at")[:12])
+    testimonios = (
+        Testimonial.objects.filter(active=True)
+        .prefetch_related("photos")
+        .order_by("-created_at")[:12]
+    )
 
-    # 👉 Fondo configurable desde el admin
+    # --- Fondo configurable desde el admin ---
     background = HomeBackground.objects.filter(active=True).first()
+
+    # Año actual para el footer
+    now = timezone.now()
 
     return render(request, "citas/home.html", {
         "form": form,
@@ -31999,6 +32241,12 @@ def home(request):
         "services": services,
         "testimonios": testimonios,
         "background": background,
+        "public_packages": public_packages,
+        "vip_client_name": vip_client_name,
+        "vip_packages": vip_packages,
+        "vip_error": vip_error,
+        "initial_section": initial_section,
+        "now": now,
     })
 
 ================================================================================
@@ -32582,6 +32830,182 @@ class Migration(migrations.Migration):
 
 ================================================================================
 
+>>> ARCHIVO: citas\migrations\0010_promotion_vipcode.py
+--------------------------------------------------------------------------------
+# Generated by Django 4.2.25 on 2025-11-24 19:30
+
+from django.db import migrations, models
+
+
+class Migration(migrations.Migration):
+
+    dependencies = [
+        ('citas', '0009_homebackground_alter_servicecategory_options'),
+    ]
+
+    operations = [
+        migrations.CreateModel(
+            name='Promotion',
+            fields=[
+                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('title', models.CharField(max_length=150, verbose_name='Título')),
+                ('description', models.TextField(blank=True, verbose_name='Descripción')),
+                ('image', models.ImageField(blank=True, null=True, upload_to='promotions/')),
+                ('price', models.DecimalField(blank=True, decimal_places=2, max_digits=10, null=True, verbose_name='Precio')),
+                ('consult_price_with_owner', models.BooleanField(default=False, verbose_name="Mostrar 'Consultar precio con propietaria'")),
+                ('is_vip_only', models.BooleanField(default=False, help_text='Si está marcado, la promo solo se mostrará en la sección VIP.', verbose_name='Solo clientes VIP')),
+                ('active', models.BooleanField(default=True)),
+                ('created_at', models.DateTimeField(auto_now_add=True)),
+            ],
+            options={
+                'verbose_name': 'Promoción',
+                'verbose_name_plural': 'Promociones',
+                'ordering': ['-created_at'],
+            },
+        ),
+        migrations.CreateModel(
+            name='VipCode',
+            fields=[
+                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('code', models.CharField(blank=True, help_text='Si lo dejas en blanco, se generará automáticamente.', max_length=4, unique=True, verbose_name='Código (4 dígitos)')),
+                ('client_name', models.CharField(blank=True, max_length=100, verbose_name='Nombre de la clienta')),
+                ('notes', models.CharField(blank=True, max_length=200, verbose_name='Notas')),
+                ('active', models.BooleanField(default=True, verbose_name='Activo')),
+                ('created_at', models.DateTimeField(auto_now_add=True)),
+            ],
+            options={
+                'verbose_name': 'Código VIP',
+                'verbose_name_plural': 'Códigos VIP',
+                'ordering': ['-created_at'],
+            },
+        ),
+    ]
+
+================================================================================
+
+>>> ARCHIVO: citas\migrations\0011_vipclientcode_delete_vipcode_alter_promotion_options_and_more.py
+--------------------------------------------------------------------------------
+# Generated by Django 4.2.25 on 2025-11-24 23:09
+
+from django.db import migrations, models
+
+
+class Migration(migrations.Migration):
+
+    dependencies = [
+        ('citas', '0010_promotion_vipcode'),
+    ]
+
+    operations = [
+        migrations.CreateModel(
+            name='VIPClientCode',
+            fields=[
+                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('code', models.CharField(help_text='Puede ser numérico de 4 dígitos o cualquier texto único.', max_length=10, unique=True, verbose_name='Código VIP')),
+                ('note', models.CharField(blank=True, help_text='Referencia interna (ej. nombre de la clienta).', max_length=200, verbose_name='Nota / Nombre clienta')),
+                ('active', models.BooleanField(default=True)),
+                ('created_at', models.DateTimeField(auto_now_add=True)),
+            ],
+            options={
+                'verbose_name': 'Código VIP',
+                'verbose_name_plural': 'Códigos VIP',
+            },
+        ),
+        migrations.DeleteModel(
+            name='VipCode',
+        ),
+        migrations.AlterModelOptions(
+            name='promotion',
+            options={'verbose_name': 'Paquete', 'verbose_name_plural': 'Paquetes'},
+        ),
+        migrations.RemoveField(
+            model_name='promotion',
+            name='consult_price_with_owner',
+        ),
+        migrations.RemoveField(
+            model_name='promotion',
+            name='is_vip_only',
+        ),
+        migrations.AddField(
+            model_name='promotion',
+            name='show_price',
+            field=models.BooleanField(default=True, help_text="Si se desmarca, se mostrará 'Consultar precio con propietaria'.", verbose_name='Mostrar precio al cliente'),
+        ),
+        migrations.AddField(
+            model_name='promotion',
+            name='vip_only',
+            field=models.BooleanField(default=False, help_text='Si se marca, este paquete solo se mostrará en la sección VIP.', verbose_name='Solo Clientes VIP'),
+        ),
+        migrations.AlterField(
+            model_name='promotion',
+            name='active',
+            field=models.BooleanField(default=True, verbose_name='Activo'),
+        ),
+        migrations.AlterField(
+            model_name='promotion',
+            name='title',
+            field=models.CharField(max_length=120, verbose_name='Título'),
+        ),
+    ]
+
+================================================================================
+
+>>> ARCHIVO: citas\migrations\0012_package_vipcode_delete_promotion_and_more.py
+--------------------------------------------------------------------------------
+# Generated by Django 4.2.25 on 2025-11-26 00:05
+
+from django.db import migrations, models
+
+
+class Migration(migrations.Migration):
+
+    dependencies = [
+        ('citas', '0011_vipclientcode_delete_vipcode_alter_promotion_options_and_more'),
+    ]
+
+    operations = [
+        migrations.CreateModel(
+            name='Package',
+            fields=[
+                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('title', models.CharField(max_length=150, verbose_name='Título')),
+                ('description', models.TextField(blank=True, verbose_name='Descripción')),
+                ('image', models.ImageField(blank=True, null=True, upload_to='packages/')),
+                ('price', models.PositiveIntegerField(blank=True, null=True, verbose_name='Precio (CRC)')),
+                ('show_price', models.BooleanField(default=True, help_text="Si se desmarca, se mostrará 'Consultar precio con propietaria'.", verbose_name='Mostrar precio en la web')),
+                ('vip_only', models.BooleanField(default=False, help_text='Si está marcado, este paquete solo se mostrará a clientas VIP.', verbose_name='Solo VIP')),
+                ('active', models.BooleanField(default=True, verbose_name='Activo')),
+                ('created_at', models.DateTimeField(auto_now_add=True)),
+            ],
+            options={
+                'verbose_name': 'Paquete',
+                'verbose_name_plural': 'Paquetes',
+            },
+        ),
+        migrations.CreateModel(
+            name='VipCode',
+            fields=[
+                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('code', models.CharField(max_length=10, unique=True, verbose_name='Código VIP')),
+                ('name', models.CharField(max_length=100, verbose_name='Nombre de la clienta')),
+                ('active', models.BooleanField(default=True, verbose_name='Activo')),
+                ('created_at', models.DateTimeField(auto_now_add=True)),
+            ],
+            options={
+                'verbose_name': 'Código VIP',
+                'verbose_name_plural': 'Códigos VIP',
+            },
+        ),
+        migrations.DeleteModel(
+            name='Promotion',
+        ),
+        migrations.DeleteModel(
+            name='VIPClientCode',
+        ),
+    ]
+
+================================================================================
+
 >>> ARCHIVO: citas\migrations\__init__.py
 --------------------------------------------------------------------------------
 
@@ -32724,58 +33148,91 @@ input, select {
   cursor: not-allowed;
 }
 
-/* ---------- BLOQUE CENTRAL CON 5 RECTÁNGULOS ---------- */
-
+/* ---------- HERO MENU (5 rectángulos + fondo) ---------- */
 .hero-menu {
-  position: relative;
+  min-height: 260px;
   background-size: cover;
   background-position: center;
-  background-repeat: no-repeat;
+  position: relative;
 }
 
 .hero-menu-fallback {
-  background: radial-gradient(circle at top, #ffe6ef 0, #f7f7fb 55%);
+  background: radial-gradient(circle at top, #ffd1dc, #ff8da1 40%, #f7f7fb 80%);
 }
 
 .hero-menu-overlay {
-  background: rgba(0, 0, 0, 0.25);
-  padding: 2.5rem 0;
+  background: rgba(0,0,0,0.35);
+  width: 100%;
+  height: 100%;
+  padding: 2rem 0 3rem 0;
 }
 
 .hero-menu-card {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 90px;
+  display: block;
+  padding: 1rem 0.75rem;
   border-radius: 18px;
-  background: rgba(255, 141, 161, 0.92);
-  color: #fff;
   text-decoration: none;
+  background: rgba(255, 141, 161, 0.9);
+  color: #ffffff;
   font-weight: 700;
-  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.18);
+  box-shadow: 0 10px 25px rgba(0,0,0,0.25);
+  backdrop-filter: blur(2px);
   transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
 }
 
 .hero-menu-card:hover {
   transform: translateY(-3px);
-  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.22);
+  box-shadow: 0 14px 30px rgba(0,0,0,0.3);
   background: rgba(255, 141, 161, 1);
-  color: #fff;
+  color: #ffffff;
 }
 
 .hero-menu-title {
-  font-size: 1rem;
+  font-size: 0.95rem;
   letter-spacing: 0.03em;
   text-transform: uppercase;
 }
 
-@media (max-width: 576px) {
-  .hero-menu-card {
-    min-height: 80px;
-    font-size: 0.9rem;
-  }
+/* ---------- Promociones ---------- */
+.promo-card {
+  border-radius: 16px;
 }
 
+.promo-card img {
+  object-fit: cover;
+}
+
+.vip-card {
+  border: 2px solid #ffd1dc;
+}
+
+
+/* ---------- Imágenes más pequeñas en testimonios ---------- */
+.testimonial-frame {
+  max-width: 260px;
+  margin: 0 auto;
+}
+
+.testimonial-img {
+  object-fit: cover;
+}
+
+/* ---------- Imágenes de paquetes (públicos y VIP) ---------- */
+.package-frame {
+  max-width: 260px;
+  margin: 0 auto;
+}
+
+.package-img {
+  object-fit: cover;
+}
+
+/* ---------- Badge "Exclusivo VIP" dorado ---------- */
+.vip-exclusive-badge {
+  background-color: #f5d76e;
+  color: #5c4b11;
+  font-weight: 700;
+}
 
 ================================================================================
 
@@ -33055,7 +33512,7 @@ input, select {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Salón | Reservas, Servicios y Testimonios</title>
+  <title>Salón | Reservas, Servicios, Testimonios y Paquetes</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="{% static 'citas/style.css' %}">
   <style>
@@ -33066,34 +33523,12 @@ input, select {
 </head>
 <body class="bg-light">
 
-<!-- NAV -->
+<!-- NAV (sin botones repetidos a la derecha) -->
 <nav class="navbar navbar-expand-lg bg-white border-bottom sticky-top">
   <div class="container">
     <a class="navbar-brand fw-bold" href="#top" style="color:#ff8da1;">
-      Centro de Belleza & Spa Nadira Fashion
+      Centro de Belleza &amp; Spa Nadira Fashion
     </a>
-    <button class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#nav">
-      <span class="navbar-toggler-icon"></span>
-    </button>
-    <div id="nav" class="collapse navbar-collapse">
-      <ul class="navbar-nav ms-auto">
-        <li class="nav-item">
-          <a class="nav-link section-link" href="#" data-section="reservar">Reservar</a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link section-link" href="#" data-section="servicios">Servicios</a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link section-link" href="#" data-section="testimonios">Testimonios</a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link section-link" href="#" data-section="promociones">Promociones</a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link section-link" href="#" data-section="vip">Clientes VIP</a>
-        </li>
-      </ul>
-    </div>
   </div>
 </nav>
 
@@ -33136,8 +33571,8 @@ input, select {
         </div>
 
         <div class="col-6 col-md-4 col-lg-2">
-          <a href="#" class="hero-menu-card text-center section-link" data-section="promociones">
-            <span class="hero-menu-title">Promociones</span>
+          <a href="#" class="hero-menu-card text-center section-link" data-section="paquetes">
+            <span class="hero-menu-title">Paquetes</span>
           </a>
         </div>
 
@@ -33160,7 +33595,9 @@ input, select {
     <div class="col-md-8 col-lg-6">
       <div class="card shadow-lg p-4 rounded-3">
         <h2 class="mb-3" style="color:#ff8da1;font-weight:800;">Reservar Cita</h2>
-        {% if success %}<div class="alert alert-success">{{ success }}</div>{% endif %}
+        {% if success %}
+          <div class="alert alert-success">{{ success }}</div>
+        {% endif %}
         <form method="post">
           {% csrf_token %}
           <div class="mb-3">
@@ -33182,9 +33619,6 @@ input, select {
           <div class="mb-3">
             <label class="form-label">Hora</label>
             {{ form.time }}
-            <datalist id="available_times">
-              {% for t in available_times %}<option value="{{ t }}">{% endfor %}
-            </datalist>
           </div>
           <div class="d-grid">
             <button class="btn btn-primary" type="submit">Confirmar Reserva</button>
@@ -33208,9 +33642,6 @@ input, select {
           {% if s.description %}
             <p class="text-muted mb-2">{{ s.description }}</p>
           {% endif %}
-          {% if s.duration_minutes %}
-            <span class="badge text-bg-light">~{{ s.duration_minutes }} min</span>
-          {% endif %}
         </div>
       </div>
     {% empty %}
@@ -33219,7 +33650,7 @@ input, select {
   </div>
 </section>
 
-<!-- TESTIMONIOS (oculta inicialmente) -->
+<!-- TESTIMONIOS (oculta inicialmente, imágenes más pequeñas) -->
 <section id="testimonios"
          data-section="testimonios"
          class="container py-5 toggle-section d-none">
@@ -33234,17 +33665,17 @@ input, select {
             <div class="row g-3 mt-2">
               {% for p in t.photos.all %}
                 <div class="col-12 col-md-6">
-                  <div class="ratio ratio-4x3 border rounded overflow-hidden">
+                  <div class="ratio ratio-16x9 testimonial-frame border rounded overflow-hidden">
                     <img src="{{ p.before_image.url }}"
-                         class="w-100 h-100 object-fit-cover"
+                         class="w-100 h-100 object-fit-cover testimonial-img"
                          alt="Antes">
                   </div>
                 </div>
                 {% if p.after_image %}
                 <div class="col-12 col-md-6">
-                  <div class="ratio ratio-4x3 border rounded overflow-hidden">
+                  <div class="ratio ratio-16x9 testimonial-frame border rounded overflow-hidden">
                     <img src="{{ p.after_image.url }}"
-                         class="w-100 h-100 object-fit-cover"
+                         class="w-100 h-100 object-fit-cover testimonial-img"
                          alt="Después">
                   </div>
                 </div>
@@ -33260,33 +33691,123 @@ input, select {
   </div>
 </section>
 
-<!-- PROMOCIONES (oculta inicialmente) -->
-<section id="promociones"
-         data-section="promociones"
+<!-- PAQUETES (no-VIP o generales; si no usás esto, podés dejarlo simple) -->
+<section id="paquetes"
+         data-section="paquetes"
          class="container py-5 toggle-section d-none">
-  <h2 class="mb-3" style="color:#ff8da1;font-weight:800;">Promociones</h2>
-  <p class="text-muted">
-    Muy pronto verás aquí las mejores promociones de Nadira Fashion ✨
-  </p>
+  <h2 class="mb-3" style="color:#ff8da1;font-weight:800;">Paquetes</h2>
+
+  {% if public_packages %}
+    <div class="row g-4">
+      {% for p in public_packages %}
+        <div class="col-12 col-md-6 col-lg-4">
+          <div class="card h-100 shadow-sm p-3">
+            {% if p.image %}
+              <div class="ratio ratio-16x9 package-frame border rounded overflow-hidden mb-3">
+                <img src="{{ p.image.url }}"
+                     class="w-100 h-100 object-fit-cover package-img"
+                     alt="{{ p.title }}">
+              </div>
+            {% endif %}
+            <h5 class="fw-bold mb-1">{{ p.title }}</h5>
+            {% if p.description %}
+              <p class="text-muted mb-2">{{ p.description }}</p>
+            {% endif %}
+            {% if p.show_price and p.price %}
+              <span class="badge bg-light text-dark">
+                ₡{{ p.price|floatformat:0|stringformat:".0f" }}
+              </span>
+            {% else %}
+              <span class="badge bg-light text-dark">Consultar precio con propietaria</span>
+            {% endif %}
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p class="text-muted">Por el momento no hay paquetes públicos configurados.</p>
+  {% endif %}
 </section>
 
-<!-- CLIENTES VIP (oculta inicialmente) -->
+<!-- CLIENTES VIP -->
 <section id="vip"
          data-section="vip"
          class="container py-5 toggle-section d-none">
   <h2 class="mb-3" style="color:#ff8da1;font-weight:800;">Clientes VIP</h2>
-  <p class="text-muted">
-    Espacio reservado para beneficios exclusivos de nuestras clientas VIP 💖
+
+  <!-- Texto elegante con diamante -->
+  <p class="mb-3" style="color:#b8860b; font-weight:600;">
+    💎 Si sos clienta VIP, ingresá tu código para ver tus paquetes exclusivos.
   </p>
+
+  <!-- Formulario VIP sin los textos que querés eliminar -->
+  <form method="post" class="mb-3">
+    {% csrf_token %}
+    <div class="row g-2 align-items-center">
+      <div class="col-12 col-md-6 col-lg-4">
+        <input type="text"
+               name="vip_code"
+               class="form-control"
+               placeholder="Código VIP">
+      </div>
+      <div class="col-12 col-md-auto">
+        <button type="submit" name="vip_submit" value="1" class="btn btn-primary">
+          Ver paquetes VIP
+        </button>
+      </div>
+    </div>
+  </form>
+
+  {% if vip_error %}
+    <div class="alert alert-danger">{{ vip_error }}</div>
+  {% endif %}
+
+  {% if vip_packages %}
+    {% if vip_owner_name %}
+      <p class="mb-3" style="font-weight:600;">
+        Bienvenida, {{ vip_owner_name }}. Estos son tus paquetes exclusivos ✨
+      </p>
+    {% endif %}
+
+    <div class="row g-4">
+      {% for p in vip_packages %}
+        <div class="col-12 col-md-6 col-lg-4">
+          <div class="card h-100 shadow-sm p-3">
+            {% if p.image %}
+              <div class="ratio ratio-16x9 package-frame border rounded overflow-hidden mb-3">
+                <img src="{{ p.image.url }}"
+                     class="w-100 h-100 object-fit-cover package-img"
+                     alt="{{ p.title }}">
+              </div>
+            {% endif %}
+            <div class="d-flex justify-content-between align-items-center mb-1">
+              <h5 class="fw-bold mb-0">{{ p.title }}</h5>
+              <span class="badge vip-exclusive-badge">Exclusivo VIP</span>
+            </div>
+            {% if p.description %}
+              <p class="text-muted mb-2">{{ p.description }}</p>
+            {% endif %}
+            {% if p.show_price and p.price %}
+              <span class="badge bg-light text-dark">
+                ₡{{ p.price|floatformat:0|stringformat:".0f" }}
+              </span>
+            {% else %}
+              <span class="badge bg-light text-dark">Consultar precio con propietaria</span>
+            {% endif %}
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
 </section>
 
 <footer class="py-4 text-center text-muted">
-  <small>© {{ now|date:"Y" }} Salón Nadira</small>
+  <small>© Centro de Belleza &amp; Spa Nadira Fashion</small>
 </footer>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
-<!-- JS para mostrar/ocultar secciones según clic -->
+<!-- JS 1: mostrar/ocultar secciones según clic -->
 <script>
   document.addEventListener("DOMContentLoaded", function () {
     const sections = document.querySelectorAll(".toggle-section");
@@ -33313,8 +33834,78 @@ input, select {
       });
     });
 
-    // Opcional: si querés que alguna se muestre por defecto al cargar, descomentá:
+    // Por defecto podés mostrar la sección de Reservar:
     // showSection("reservar");
+  });
+</script>
+
+<!-- JS 2: Cargar horas disponibles vía /api/available-times/ -->
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const dateInput   = document.getElementById("date-input");   // widget del form
+    const serviceSelect = document.getElementById("id_service"); // select de servicio
+    const timeSelect  = document.getElementById("time-select");  // select de horas
+
+    if (!dateInput || !serviceSelect || !timeSelect) {
+      return;
+    }
+
+    function setPlaceholder(text) {
+      timeSelect.innerHTML = "";
+      const opt = document.createElement("option");
+      opt.value = "";
+      opt.textContent = "— " + text + " —";
+      opt.disabled = true;
+      opt.selected = true;
+      timeSelect.appendChild(opt);
+    }
+
+    async function loadTimes() {
+      const dateVal = dateInput.value;
+      const serviceVal = serviceSelect.value;
+
+      if (!dateVal || !serviceVal) {
+        setPlaceholder("Seleccioná servicio y fecha");
+        return;
+      }
+
+      try {
+        const url = `/api/available-times/?date=${encodeURIComponent(dateVal)}&service=${encodeURIComponent(serviceVal)}`;
+        const resp = await fetch(url);
+        if (!resp.ok) {
+          setPlaceholder("Error obteniendo horarios");
+          return;
+        }
+        const data = await resp.json();
+        const times = data.times || [];
+
+        timeSelect.innerHTML = "";
+        if (!times.length) {
+          setPlaceholder("No hay horarios disponibles");
+          return;
+        }
+
+        const firstOpt = document.createElement("option");
+        firstOpt.value = "";
+        firstOpt.textContent = "— Seleccioná hora —";
+        firstOpt.disabled = true;
+        firstOpt.selected = true;
+        timeSelect.appendChild(firstOpt);
+
+        times.forEach(function (t) {
+          const opt = document.createElement("option");
+          opt.value = t;
+          opt.textContent = t;
+          timeSelect.appendChild(opt);
+        });
+      } catch (err) {
+        console.error(err);
+        setPlaceholder("Error de conexión");
+      }
+    }
+
+    dateInput.addEventListener("change", loadTimes);
+    serviceSelect.addEventListener("change", loadTimes);
   });
 </script>
 
@@ -33442,6 +34033,45 @@ input, select {
     </div>
   {% endfor %}
   ...
+
+================================================================================
+
+>>> ARCHIVO: citas\templatetags\beauty_extras.py
+--------------------------------------------------------------------------------
+# -*- coding: utf-8 -*-
+"""
+Created on Tue Nov 25 17:16:39 2025
+
+@author: jvz16
+"""
+
+# citas/templatetags/beauty_extras.py
+from django import template
+
+register = template.Library()
+
+
+@register.filter
+def price_dots(value):
+    """
+    Formatea un número como entero con separador de miles usando punto.
+    Ej: 15000 -> "15.000"
+    Si no es número, se devuelve tal cual.
+    """
+    try:
+        value_int = int(value)
+    except (TypeError, ValueError):
+        return value
+
+    # Primero formateamos con comas: 15000 -> "15,000"
+    formatted = f"{value_int:,}"
+    # Reemplazamos coma por punto: "15.000"
+    return formatted.replace(",", ".")
+
+================================================================================
+
+>>> ARCHIVO: citas\templatetags\__init__.py
+--------------------------------------------------------------------------------
 
 ================================================================================
 
