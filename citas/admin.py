@@ -23,8 +23,8 @@ from .models import (
     Testimonial,
     BeforeAfter,
     HomeBackground,
-    Promotion,
-    VIPClientCode,
+    VipCode,
+    Package,
 )
 
 # ====== Branding del Admin ======
@@ -195,31 +195,47 @@ class HomeBackgroundAdmin(admin.ModelAdmin):
         return super().has_add_permission(request)
 
 
-# ====== PAQUETES / PROMOCIONES ======
-@admin.register(Promotion)
-class PromotionAdmin(admin.ModelAdmin):
+# ====== VIP CODES ======
+@admin.register(VipCode)
+class VipCodeAdmin(admin.ModelAdmin):
+    list_display = ("code", "name", "active", "created_at")
+    list_filter = ("active",)
+    search_fields = ("code", "name")
+    ordering = ("-created_at",)
+
+    def save_model(self, request, obj, form, change):
+        """
+        Si el código viene vacío, se genera uno numérico de 4 dígitos,
+        asegurando que sea único.
+        """
+        if not obj.code:
+            while True:
+                candidate = get_random_string(4, allowed_chars="0123456789")
+                if not VipCode.objects.filter(code=candidate).exists():
+                    obj.code = candidate
+                    break
+        super().save_model(request, obj, form, change)
+
+
+# ====== PACKAGES (Paquetes / antes "Promociones") ======
+@admin.register(Package)
+class PackageAdmin(admin.ModelAdmin):
     list_display = ("title", "vip_only", "active", "show_price", "price", "created_at")
     list_filter = ("vip_only", "active", "show_price")
     search_fields = ("title", "description")
-    readonly_fields = ("created_at",)
+    ordering = ("-created_at",)
+    list_editable = ("vip_only", "active", "show_price")
+
     fieldsets = (
-        (None, {"fields": ("title", "description", "image")}),
-        ("Precio", {"fields": ("price", "show_price")}),
-        ("Configuración", {"fields": ("vip_only", "active")}),
-        ("Metadatos", {"fields": ("created_at",)}),
+        (None, {
+            "fields": ("title", "description", "image")
+        }),
+        ("Precio", {
+            "fields": ("price", "show_price"),
+            "description": "Si desmarcás 'Mostrar precio', en la web se verá 'Consultar precio con propietaria'.",
+        }),
+        ("Visibilidad", {
+            "fields": ("vip_only", "active"),
+            "description": "Marcá 'Solo VIP' para mostrar el paquete únicamente a clientas con código VIP válido.",
+        }),
     )
-
-
-# ====== CÓDIGOS VIP ======
-@admin.register(VIPClientCode)
-class VIPClientCodeAdmin(admin.ModelAdmin):
-    list_display = ("code", "note", "active", "created_at")
-    list_filter = ("active",)
-    search_fields = ("code", "note")
-    readonly_fields = ("created_at",)
-
-    def save_model(self, request, obj, form, change):
-        # Si no se escribió un código, generamos uno de 4 dígitos
-        if not obj.code:
-            obj.code = get_random_string(4, allowed_chars="0123456789")
-        super().save_model(request, obj, form, change)

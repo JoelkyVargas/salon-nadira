@@ -121,36 +121,47 @@ class HomeBackground(models.Model):
         return f"Fondo {self.pk}"
 
 
-# =======================
-# PAQUETES / PROMOCIONES
-# =======================
+class VipCode(models.Model):
+    """
+    Código VIP para una clienta, que da acceso a paquetes exclusivos.
+    """
+    code = models.CharField("Código VIP", max_length=10, unique=True)
+    name = models.CharField("Nombre de la clienta", max_length=100)
+    active = models.BooleanField("Activo", default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
 
-class Promotion(models.Model):
+    class Meta:
+        verbose_name = "Código VIP"
+        verbose_name_plural = "Códigos VIP"
+
+    def __str__(self):
+        estado = "activo" if self.active else "inactivo"
+        return f"{self.code} - {self.name} ({estado})"
+
+
+class Package(models.Model):
     """
-    Paquetes/promociones visibles en la web.
-    - Algunas pueden ser solo VIP (vip_only=True)
-    - show_price=False muestra el texto "Consultar precio con propietaria"
+    Paquetes que se muestran en la web:
+      - Públicos
+      - Exclusivos para clientes VIP
     """
-    title = models.CharField("Título", max_length=120)
+    title = models.CharField("Título", max_length=150)
     description = models.TextField("Descripción", blank=True)
-    image = models.ImageField(upload_to="promotions/", blank=True, null=True)
-    price = models.DecimalField(
-        "Precio",
-        max_digits=10,
-        decimal_places=2,
-        blank=True,
-        null=True,
-    )
+    image = models.ImageField(upload_to="packages/", blank=True, null=True)
+
+    price = models.PositiveIntegerField("Precio (CRC)", blank=True, null=True)
     show_price = models.BooleanField(
-        "Mostrar precio al cliente",
+        "Mostrar precio en la web",
         default=True,
         help_text="Si se desmarca, se mostrará 'Consultar precio con propietaria'.",
     )
+
     vip_only = models.BooleanField(
-        "Solo Clientes VIP",
+        "Solo VIP",
         default=False,
-        help_text="Si se marca, este paquete solo se mostrará en la sección VIP.",
+        help_text="Si está marcado, este paquete solo se mostrará a clientas VIP.",
     )
+
     active = models.BooleanField("Activo", default=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -159,38 +170,5 @@ class Promotion(models.Model):
         verbose_name_plural = "Paquetes"
 
     def __str__(self):
-        return self.title
-
-    def display_price(self):
-        if not self.show_price or self.price is None:
-            return "Consultar precio con propietaria"
-        # Formato simple, lo puedes adaptar a colones/dólares
-        return f"{self.price:.0f}"
-    display_price.short_description = "Precio visible"
-
-
-class VIPClientCode(models.Model):
-    """
-    Código VIP por clienta.
-    """
-    code = models.CharField(
-        "Código VIP",
-        max_length=10,
-        unique=True,
-        help_text="Puede ser numérico de 4 dígitos o cualquier texto único.",
-    )
-    note = models.CharField(
-        "Nota / Nombre clienta",
-        max_length=200,
-        blank=True,
-        help_text="Referencia interna (ej. nombre de la clienta).",
-    )
-    active = models.BooleanField(default=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        verbose_name = "Código VIP"
-        verbose_name_plural = "Códigos VIP"
-
-    def __str__(self):
-        return self.code
+        scope = "VIP" if self.vip_only else "Público"
+        return f"{self.title} ({scope})"

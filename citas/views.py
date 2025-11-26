@@ -5,9 +5,13 @@ Created on Tue Oct 28 21:31:45 2025
 @author: jvz16
 """
 
+# salon/citas/views.py
 from datetime import time as dtime, datetime, timedelta
+
 from django.http import JsonResponse
 from django.shortcuts import render
+from django.utils import timezone
+
 from .forms import AppointmentForm
 from .models import (
     ServiceCategory,
@@ -17,10 +21,10 @@ from .models import (
     Testimonial,
     BeforeAfter,
     HomeBackground,
-    Promotion,
-    VIPClientCode,
+    VipCode,
+    Package,
 )
-from .whatsapp import send_booking_notifications  # ← ya lo tenías
+from .whatsapp import send_booking_notifications  # WhatsApp notificaciones
 
 # 🕘 Configuración de horario laboral
 OPEN_HOUR = 8
@@ -29,6 +33,7 @@ BUSINESS_HOURS = range(OPEN_HOUR, CLOSE_HOUR + 1)  # 08..20
 
 
 # ---------- Utilidades ----------
+
 def _all_times():
     """['08:00','09:00',...,'20:00'] (horas en punto)."""
     return [dtime(hour=h).strftime("%H:%M") for h in BUSINESS_HOURS]
@@ -45,7 +50,7 @@ def _available_times_for_date(date_str, service_duration=None):
     excluyendo:
       - Citas existentes (considerando su duración)
       - Bloqueos por día completo, rango y puntuales
-      - Y, si viene service_duration, horas que no caben antes del cierre
+      - Y, si viene service_duration, horas que no caben antes del cierre.
     """
     all_slots = _all_times()
     if not date_str:
@@ -100,22 +105,27 @@ def _available_times_for_date(date_str, service_duration=None):
     return free
 
 
-# ---------- Vistas "clásicas" ----------
+# ---------- Vistas independientes (reservas, calendario, JSON, servicios, testimonios) ----------
+
 def reservar_cita(request):
     """
-    Formulario independiente de reserva (si lo usás).
+    Vista independiente solo para reservas (URL /reservar/).
+    Renderiza el formulario y guarda si es válido.
+    Tras guardar, envía WhatsApp a propietaria y cliente.
     """
     success = None
 
     selected_date = request.POST.get("date") if request.method == "POST" else None
     selected_service_id = request.POST.get("service") if request.method == "POST" else None
     service_duration = None
+
     if selected_service_id:
         svc = Service.objects.filter(id=selected_service_id).only("duration_minutes").first()
         if svc:
             service_duration = getattr(svc, "duration_minutes", 60)
 
     available_times = _available_times_for_date(selected_date, service_duration) if selected_date else None
+
     form = AppointmentForm(request.POST or None, available_times=available_times)
 
     if request.method == "POST" and form.is_valid():
@@ -143,6 +153,7 @@ def calendar_view(request):
 
 def appointments_json(request):
     events = []
+
     # Citas
     for ap in Appointment.objects.select_related("service").all():
         duration_min = getattr(ap.service, "duration_minutes", 60) if getattr(ap, "service", None) else 60
@@ -155,6 +166,7 @@ def appointments_json(request):
             "end": end_dt.isoformat(),
             "color": color,
         })
+
     # Bloqueos como fondo
     for b in BlockedSlot.objects.all():
         if b.start_time and b.end_time:
@@ -166,6 +178,7 @@ def appointments_json(request):
         else:
             start_dt = datetime.combine(b.date, dtime(0, 0))
             end_dt = datetime.combine(b.date, dtime(23, 59))
+
         events.append({
             "title": f"Bloqueo{f' - {b.reason}' if getattr(b, 'reason', '') else ''}",
             "start": start_dt.isoformat(),
@@ -173,6 +186,7 @@ def appointments_json(request):
             "display": "background",
             "color": "#adb5bd",
         })
+
     return JsonResponse(events, safe=False)
 
 
@@ -180,10 +194,12 @@ def available_times_json(request):
     """
     GET /api/available-times/?date=YYYY-MM-DD&service=<id>
     -> {"times": ["09:00", "10:00", ...]}
+    Considera duración del servicio seleccionado para no ofrecer horas que no caben antes del cierre.
     """
     date_str = request.GET.get("date")
     service_id = request.GET.get("service")
     service_duration = None
+
     if service_id:
         svc = Service.objects.filter(id=service_id).only("duration_minutes").first()
         if svc:
@@ -199,15 +215,17 @@ def appointments_list(request):
 
 
 def servicios(request):
+    """
+    Página independiente /servicios/ con servicios agrupados por categoría (hasta 3)
+    y “Otros” para los servicios sin categoría.
+    """
     categorias = list(ServiceCategory.objects.order_by("name")[:3])
     grupos = []
 
-    # Las 3 categorías definidas por tu esposa en el admin
     for cat in categorias:
         qs = Service.objects.filter(active=True, category=cat).order_by("name")
         grupos.append((cat.name, qs))
 
-    # Servicios sin categoría -> “Otros”
     sin_cat = Service.objects.filter(active=True, category__isnull=True).order_by("name")
     if sin_cat.exists():
         grupos.append(("Otros", sin_cat))
@@ -216,105 +234,109 @@ def servicios(request):
 
 
 def testimonios(request):
-    items = Testimonial.objects.filter(active=True).prefetch_related("photos").order_by("-created_at")
+    items = (
+        Testimonial.objects.filter(active=True)
+        .prefetch_related("photos")
+        .order_by("-created_at")
+    )
     return render(request, "citas/testimonios.html", {"items": items})
 
 
-# ---------- HOME unificada ----------
+# ---------- HOME unificada (Reservar + Servicios + Testimonios + Paquetes + VIP) ----------
+
 def home(request):
-    # Para controlar qué sección mostrar tras POST
-    initial_section = ""
+    """
+    Página principal con:
+      - Bloque de 5 “botones” (Reservas, Servicios, Testimonios, Paquetes, Clientes VIP)
+      - Secciones ocultas que se muestran al hacer clic
+      - Formulario de reservas (con WhatsApp)
+      - Paquetes públicos y Paquetes VIP
+      - Código VIP que muestra directamente la sección VIP al enviar.
+    """
+    # Para controlar qué sección se muestra inmediatamente tras un POST
+    initial_section = None
 
-    # Datos para el formulario de citas
-    selected_date = None
-    available_times = None
+    # --- Reservas ---
     success = None
+    selected_date = None
+    selected_service_id = None
+    service_duration = None
 
-    # Datos para VIP
-    vip_promos = None
+    if request.method == "POST" and request.POST.get("action") == "booking":
+        selected_date = request.POST.get("date")
+        selected_service_id = request.POST.get("service")
+
+        if selected_service_id:
+            svc = Service.objects.filter(id=selected_service_id).only("duration_minutes").first()
+            if svc:
+                service_duration = getattr(svc, "duration_minutes", 60)
+
+        available_times = _available_times_for_date(selected_date, service_duration) if selected_date else None
+        form = AppointmentForm(request.POST or None, available_times=available_times)
+
+        if form.is_valid():
+            ap = form.save()
+            success = "¡Cita reservada con éxito!"
+            try:
+                send_booking_notifications(ap)
+            except Exception as e:
+                print("WHATSAPP send error:", e)
+            form = AppointmentForm(available_times=None)
+            initial_section = "reservar"  # mostrar sección reservas tras éxito
+    else:
+        # GET o POST de otro tipo (VIP)
+        # No recalculamos horas aquí; el dropdown se completará vía JS /api/available-times/
+        form = AppointmentForm()
+        available_times = None
+
+    # --- Paquetes públicos ---
+    public_packages = Package.objects.filter(active=True, vip_only=False).order_by("title")
+
+    # --- VIP: validación de código y paquetes VIP ---
+    vip_client_name = None
+    vip_packages = None
     vip_error = None
-    vip_code_entered = ""
 
-    # --- FORMULARIOS ---
-    if request.method == "POST":
-        form_type = request.POST.get("form_type")
-
-        if form_type == "booking":
-            # Reserva de cita
-            selected_date = request.POST.get("date")
-            selected_service_id = request.POST.get("service")
-            service_duration = None
-            if selected_service_id:
-                svc = Service.objects.filter(id=selected_service_id).only("duration_minutes").first()
-                if svc:
-                    service_duration = getattr(svc, "duration_minutes", 60)
-
-            available_times = _available_times_for_date(selected_date, service_duration) if selected_date else None
-            form = AppointmentForm(request.POST, available_times=available_times)
-
-            if form.is_valid():
-                ap = form.save()
-                success = "¡Cita reservada con éxito!"
-                try:
-                    send_booking_notifications(ap)
-                except Exception as e:
-                    print("WHATSAPP send error:", e)
-                form = AppointmentForm(available_times=None)
-            initial_section = "reservar"
-
-        elif form_type == "vip":
-            # Consulta de Paquetes VIP
-            form = AppointmentForm()  # form vacío para mostrar en la sección de reservas
-            selected_date = None
-            available_times = None
-
-            vip_code_entered = (request.POST.get("vip_code") or "").strip()
+    if request.method == "POST" and request.POST.get("action") == "vip":
+        code_str = request.POST.get("vip_code", "").strip()
+        if code_str:
+            vip = VipCode.objects.filter(code=code_str, active=True).first()
+            if vip:
+                vip_client_name = vip.name  # o el campo que hayas definido en VipCode
+                vip_packages = Package.objects.filter(active=True, vip_only=True).order_by("title")
+                initial_section = "vip"  # mostrar directamente Clientes VIP
+            else:
+                vip_error = "Código VIP inválido o inactivo."
+                initial_section = "vip"
+        else:
+            vip_error = "Por favor ingresá tu código VIP."
             initial_section = "vip"
 
-            if vip_code_entered:
-                code_obj = VIPClientCode.objects.filter(code=vip_code_entered, active=True).first()
-                if code_obj:
-                    vip_promos = Promotion.objects.filter(active=True, vip_only=True).order_by("-created_at")
-                else:
-                    vip_error = "Código VIP inválido o inactivo."
-            else:
-                vip_error = "Ingresá tu código VIP."
-        else:
-            # POST raro: tratamos como GET
-            form = AppointmentForm()
-    else:
-        # GET
-        form = AppointmentForm()
-
-    # Si no se calculó available_times en POST booking, déjalo en None
-    if selected_date and available_times is None:
-        available_times = _available_times_for_date(selected_date)
-
+    # --- Servicios y testimonios para la vista unificada ---
     services = Service.objects.filter(active=True).order_by("name")
     testimonios = (
         Testimonial.objects.filter(active=True)
         .prefetch_related("photos")
         .order_by("-created_at")[:12]
     )
+
+    # --- Fondo configurable desde el admin ---
     background = HomeBackground.objects.filter(active=True).first()
 
-    # Paquetes "normales" (no VIP)
-    public_promos = Promotion.objects.filter(active=True, vip_only=False).order_by("-created_at")
+    # Año actual para el footer
+    now = timezone.now()
 
-    return render(
-        request,
-        "citas/home.html",
-        {
-            "form": form,
-            "success": success,
-            "available_times": available_times,
-            "services": services,
-            "testimonios": testimonios,
-            "background": background,
-            "public_promos": public_promos,
-            "vip_promos": vip_promos,
-            "vip_error": vip_error,
-            "vip_code_entered": vip_code_entered,
-            "initial_section": initial_section,
-        },
-    )
+    return render(request, "citas/home.html", {
+        "form": form,
+        "success": success,
+        "available_times": available_times,
+        "services": services,
+        "testimonios": testimonios,
+        "background": background,
+        "public_packages": public_packages,
+        "vip_client_name": vip_client_name,
+        "vip_packages": vip_packages,
+        "vip_error": vip_error,
+        "initial_section": initial_section,
+        "now": now,
+    })
