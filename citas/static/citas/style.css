@@ -128,3 +128,31 @@ input, select {
 .vip-card {
   border: 2px solid #ffd1dc;
 }
+
+
+/* ---------- Imágenes más pequeñas en testimonios ---------- */
+.testimonial-frame {
+  max-width: 260px;
+  margin: 0 auto;
+}
+
+.testimonial-img {
+  object-fit: cover;
+}
+
+/* ---------- Imágenes de paquetes (públicos y VIP) ---------- */
+.package-frame {
+  max-width: 260px;
+  margin: 0 auto;
+}
+
+.package-img {
+  object-fit: cover;
+}
+
+/* ---------- Badge "Exclusivo VIP" dorado ---------- */
+.vip-exclusive-badge {
+  background-color: #f5d76e;
+  color: #5c4b11;
+  font-weight: 700;
+}
