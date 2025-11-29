@@ -142,7 +142,7 @@
   </div>
 </section>
 
-<!-- TESTIMONIOS (oculta inicialmente, imágenes más pequeñas) -->
+<!-- TESTIMONIOS (oculta inicialmente, imágenes un poco más grandes) -->
 <section id="testimonios"
          data-section="testimonios"
          class="container py-5 toggle-section d-none">
@@ -157,7 +157,7 @@
             <div class="row g-3 mt-2">
               {% for p in t.photos.all %}
                 <div class="col-12 col-md-6">
-                  <div class="ratio ratio-16x9 testimonial-frame border rounded overflow-hidden">
+                  <div class="ratio ratio-4x3 testimonial-frame border rounded overflow-hidden">
                     <img src="{{ p.before_image.url }}"
                          class="w-100 h-100 object-fit-cover testimonial-img"
                          alt="Antes">
@@ -165,7 +165,7 @@
                 </div>
                 {% if p.after_image %}
                 <div class="col-12 col-md-6">
-                  <div class="ratio ratio-16x9 testimonial-frame border rounded overflow-hidden">
+                  <div class="ratio ratio-4x3 testimonial-frame border rounded overflow-hidden">
                     <img src="{{ p.after_image.url }}"
                          class="w-100 h-100 object-fit-cover testimonial-img"
                          alt="Después">
@@ -182,6 +182,7 @@
     {% endfor %}
   </div>
 </section>
+
 
 <!-- PAQUETES (no-VIP o generales) -->
 <section id="paquetes"
