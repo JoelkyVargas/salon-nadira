@@ -7,11 +7,57 @@
   <title>Salón | Reservas, Servicios, Testimonios y Paquetes</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="{% static 'citas/style.css' %}?v=3">
-  <style>
-    .nav-link{font-weight:700}
-    section{scroll-margin-top:100px}
-    .hero{padding:3rem 0}
-  </style>
+<style>
+  .nav-link{font-weight:700}
+  section{scroll-margin-top:100px}
+  .hero{padding:3rem 0}
+
+  /* HERO MENU (5 rectángulos + fondo) – duplicado aquí para asegurar estilo */
+  .hero-menu {
+    min-height: 260px;
+    background-size: cover;
+    background-position: center;
+    position: relative;
+  }
+
+  .hero-menu-fallback {
+    background: radial-gradient(circle at top, #ffd1dc, #ff8da1 40%, #f7f7fb 80%);
+  }
+
+  .hero-menu-overlay {
+    background: rgba(0,0,0,0.35);
+    width: 100%;
+    height: 100%;
+    padding: 2rem 0 3rem 0;
+  }
+
+  .hero-menu-card {
+    display: block;
+    padding: 1rem 0.75rem;
+    border-radius: 18px;
+    text-decoration: none;
+    background: rgba(255, 141, 161, 0.9);
+    color: #ffffff;
+    font-weight: 700;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.25);
+    backdrop-filter: blur(2px);
+    transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+  }
+
+  .hero-menu-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 14px 30px rgba(0,0,0,0.3);
+    background: rgba(255, 141, 161, 1);
+    color: #ffffff;
+  }
+
+  .hero-menu-title {
+    font-size: 0.95rem;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+  }
+</style>
+
 </head>
 <body class="bg-light" data-initial-section="{{ initial_section|default:'' }}">
 
