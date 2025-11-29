@@ -253,64 +253,100 @@ def home(request):
       - Paquetes públicos y Paquetes VIP
       - Código VIP que muestra directamente la sección VIP al enviar.
     """
-    # Para controlar qué sección se muestra inmediatamente tras un POST
+    # Qué sección debe quedar visible tras un POST
     initial_section = None
 
-    # --- Reservas ---
+    # --- Variables comunes ---
     success = None
-    selected_date = None
-    selected_service_id = None
-    service_duration = None
+    available_times = None
 
-    if request.method == "POST" and request.POST.get("action") == "booking":
-        selected_date = request.POST.get("date")
-        selected_service_id = request.POST.get("service")
+    # Para VIP
+    vip_owner_name = None
+    vip_packages = None
+    vip_error = None
 
-        if selected_service_id:
-            svc = Service.objects.filter(id=selected_service_id).only("duration_minutes").first()
-            if svc:
-                service_duration = getattr(svc, "duration_minutes", 60)
+    # --- Lógica POST (puede ser reserva o VIP) ---
+    if request.method == "POST":
+        # Detectamos formulario VIP por presencia de vip_code
+        if "vip_code" in request.POST:
+            code_str = request.POST.get("vip_code", "").strip()
+            if code_str:
+                vip = VipCode.objects.filter(code=code_str, active=True).first()
+                if vip:
+                    vip_owner_name = vip.name  # usamos este nombre en el template
+                    vip_packages = Package.objects.filter(active=True, vip_only=True).order_by("title")
 
-        available_times = _available_times_for_date(selected_date, service_duration) if selected_date else None
-        form = AppointmentForm(request.POST or None, available_times=available_times)
+                    for pkg in vip_packages:
+                        if pkg.price is not None:
+                            try:
+                                value = int(pkg.price)
+                                pkg.formatted_price = f"{value:,}".replace(",", ".")
+                            except (TypeError, ValueError):
+                                pkg.formatted_price = ""
 
-        if form.is_valid():
-            ap = form.save()
-            success = "¡Cita reservada con éxito!"
-            try:
-                send_booking_notifications(ap)
-            except Exception as e:
-                print("WHATSAPP send error:", e)
-            form = AppointmentForm(available_times=None)
-            initial_section = "reservar"  # mostrar sección reservas tras éxito
+                else:
+                    vip_error = "Código VIP inválido o inactivo."
+            else:
+                vip_error = "Por favor ingresá tu código VIP."
+
+            # Después de enviar código VIP, mostramos la sección VIP
+            initial_section = "vip"
+            # El formulario de reserva se muestra vacío
+            form = AppointmentForm()
+
+        else:
+            # --------- Formulario de RESERVA ----------
+            selected_date = request.POST.get("date")
+            selected_service_id = request.POST.get("service")
+            service_duration = None
+
+            if selected_service_id:
+                svc = Service.objects.filter(
+                    id=selected_service_id
+                ).only("duration_minutes").first()
+                if svc:
+                    service_duration = getattr(svc, "duration_minutes", 60)
+
+            available_times = _available_times_for_date(
+                selected_date,
+                service_duration
+            ) if selected_date else None
+
+            form = AppointmentForm(
+                request.POST or None,
+                available_times=available_times
+            )
+
+            if form.is_valid():
+                ap = form.save()
+                success = "¡Cita reservada con éxito!"
+                try:
+                    send_booking_notifications(ap)
+                except Exception as e:
+                    print("WHATSAPP send error:", e)
+
+                # Limpiamos el formulario tras guardar
+                form = AppointmentForm()
+            # Tras reservar, dejamos visible la sección de reservas
+            initial_section = "reservar"
+
     else:
-        # GET o POST de otro tipo (VIP)
-        # No recalculamos horas aquí; el dropdown se completará vía JS /api/available-times/
+        # GET: formulario de reserva vacío,
+        # el dropdown de horas se llenará vía JS /api/available-times/
         form = AppointmentForm()
-        available_times = None
 
     # --- Paquetes públicos ---
     public_packages = Package.objects.filter(active=True, vip_only=False).order_by("title")
 
-    # --- VIP: validación de código y paquetes VIP ---
-    vip_client_name = None
-    vip_packages = None
-    vip_error = None
+    # Formateo de precios con miles separados por punto
+    for pkg in public_packages:
+        if pkg.price is not None:
+            try:
+                value = int(pkg.price)
+                pkg.formatted_price = f"{value:,}".replace(",", ".")
+            except (TypeError, ValueError):
+                pkg.formatted_price = ""
 
-    if request.method == "POST" and request.POST.get("action") == "vip":
-        code_str = request.POST.get("vip_code", "").strip()
-        if code_str:
-            vip = VipCode.objects.filter(code=code_str, active=True).first()
-            if vip:
-                vip_client_name = vip.name  # o el campo que hayas definido en VipCode
-                vip_packages = Package.objects.filter(active=True, vip_only=True).order_by("title")
-                initial_section = "vip"  # mostrar directamente Clientes VIP
-            else:
-                vip_error = "Código VIP inválido o inactivo."
-                initial_section = "vip"
-        else:
-            vip_error = "Por favor ingresá tu código VIP."
-            initial_section = "vip"
 
     # --- Servicios y testimonios para la vista unificada ---
     services = Service.objects.filter(active=True).order_by("name")
@@ -323,7 +359,7 @@ def home(request):
     # --- Fondo configurable desde el admin ---
     background = HomeBackground.objects.filter(active=True).first()
 
-    # Año actual para el footer
+    # Año actual para el footer (si lo querés usar)
     now = timezone.now()
 
     return render(request, "citas/home.html", {
@@ -334,7 +370,7 @@ def home(request):
         "testimonios": testimonios,
         "background": background,
         "public_packages": public_packages,
-        "vip_client_name": vip_client_name,
+        "vip_owner_name": vip_owner_name,   # 👈 nombre que usa tu template
         "vip_packages": vip_packages,
         "vip_error": vip_error,
         "initial_section": initial_section,

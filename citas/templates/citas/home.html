@@ -13,7 +13,7 @@
     .hero{padding:3rem 0}
   </style>
 </head>
-<body class="bg-light">
+<body class="bg-light" data-initial-section="{{ initial_section|default:'' }}">
 
 <!-- NAV (sin botones repetidos a la derecha) -->
 <nav class="navbar navbar-expand-lg bg-white border-bottom sticky-top">
@@ -183,7 +183,7 @@
   </div>
 </section>
 
-<!-- PAQUETES (no-VIP o generales; si no usás esto, podés dejarlo simple) -->
+<!-- PAQUETES (no-VIP o generales) -->
 <section id="paquetes"
          data-section="paquetes"
          class="container py-5 toggle-section d-none">
@@ -207,7 +207,7 @@
             {% endif %}
             {% if p.show_price and p.price %}
               <span class="badge bg-light text-dark">
-                ₡{{ p.price|floatformat:0|stringformat:".0f" }}
+                ₡{{ p.formatted_price|default:p.price }}
               </span>
             {% else %}
               <span class="badge bg-light text-dark">Consultar precio con propietaria</span>
@@ -232,7 +232,7 @@
     💎 Si sos clienta VIP, ingresá tu código para ver tus paquetes exclusivos.
   </p>
 
-  <!-- Formulario VIP sin los textos que querés eliminar -->
+  <!-- Formulario VIP -->
   <form method="post" class="mb-3">
     {% csrf_token %}
     <div class="row g-2 align-items-center">
@@ -281,7 +281,7 @@
             {% endif %}
             {% if p.show_price and p.price %}
               <span class="badge bg-light text-dark">
-                ₡{{ p.price|floatformat:0|stringformat:".0f" }}
+                ₡{{ p.formatted_price|default:p.price }}
               </span>
             {% else %}
               <span class="badge bg-light text-dark">Consultar precio con propietaria</span>
@@ -299,7 +299,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
-<!-- JS 1: mostrar/ocultar secciones según clic -->
+<!-- JS 1: mostrar/ocultar secciones según clic + usar initial_section -->
 <script>
   document.addEventListener("DOMContentLoaded", function () {
     const sections = document.querySelectorAll(".toggle-section");
@@ -326,8 +326,16 @@
       });
     });
 
-    // Por defecto podés mostrar la sección de Reservar:
-    // showSection("reservar");
+    // 👉 Mostrar la sección según initial_section (reservar o vip)
+    const initial = document.body.dataset.initialSection;
+    if (initial) {
+      showSection(initial);
+    }
+    // Si quisieras mostrar "reservar" por defecto solo en GET sin initial_section,
+    // podrías descomentar esto:
+    // else {
+    //   showSection("reservar");
+    // }
   });
 </script>
 

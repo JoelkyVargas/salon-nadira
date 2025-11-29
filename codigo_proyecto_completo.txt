@@ -31761,7 +31761,6 @@ class Package(models.Model):
     def __str__(self):
         scope = "VIP" if self.vip_only else "Público"
         return f"{self.title} ({scope})"
-
 ================================================================================
 
 >>> ARCHIVO: citas\style.css
