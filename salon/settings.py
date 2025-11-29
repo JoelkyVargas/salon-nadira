@@ -37,12 +37,10 @@ INSTALLED_APPS = [
     # 'reservas',
 ]
 
-    
 LANGUAGE_CODE = "es"
 TIME_ZONE = "America/Costa_Rica"
 USE_I18N = True
 USE_TZ = True
-
 
 # -----------------------------------------------
 # MIDDLEWARE
@@ -82,11 +80,9 @@ DATABASES = {
 }
 
 # === Si hay DATABASE_URL (como en Render o manualmente con set) ===
-
 if os.getenv("DATABASE_URL"):
     import dj_database_url
     DATABASES["default"] = dj_database_url.config(conn_max_age=600, ssl_require=False)
-
 else:
     DATABASES = {
         "default": {
@@ -94,7 +90,6 @@ else:
             "NAME": BASE_DIR / "db.sqlite3",
         }
     }
-
 
 # -----------------------------------------------
 # CONFIGURACIÓN DE TEMPLATES
@@ -119,12 +114,18 @@ TEMPLATES = [
 # CONFIGURACIÓN DE ARCHIVOS ESTÁTICOS
 # -----------------------------------------------
 STATIC_URL = '/static/'
-STATIC_ROOT = BASE_DIR
 
+# ✅ NUEVO: carpeta donde tienes tus archivos estáticos del proyecto (CSS, JS, imágenes comunes)
+STATICFILES_DIRS = [
+    BASE_DIR / "static",
+]
 
+# ✅ CAMBIADO: carpeta a donde collectstatic copiará todo para producción (Render + WhiteNoise)
+STATIC_ROOT = BASE_DIR / "staticfiles"
 
-
-# Media (dev local)
+# -----------------------------------------------
+# ARCHIVOS DE MEDIA (subidos por el admin)
+# -----------------------------------------------
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 

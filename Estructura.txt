@@ -1,0 +1,58 @@
+salon_agenda/
+├─ manage.py
+├─ requirements.txt
+├─ runtime.txt                # (opcional, si lo creaste para fijar versión Python)
+├─ Procfile                   # (si lo estás usando en Render para gunicorn)
+├─ render.yaml                # (si configuraste deploy vía YAML)
+├─ .env.example               # (si lo generamos para documentar variables)
+├─ salon/
+│  ├─ __init__.py
+│  ├─ asgi.py
+│  ├─ settings.py
+│  ├─ urls.py                 # incluye: path("", include("citas.urls"))
+│  ├─ wsgi.py
+│  └─ static/                 # (a veces se deja aquí, a veces a nivel raíz)
+│
+├─ citas/
+│  ├─ __init__.py
+│  ├─ admin.py
+│  ├─ apps.py
+│  ├─ forms.py
+│  ├─ models.py               # Service, ServiceCategory, Appointment, BlockedSlot,
+│  │                          # Testimonial, BeforeAfter, HomeBackground,
+│  │                          # VipCode, Package
+│  ├─ urls.py                 # home, reservar, agenda, api/available-times, etc.
+│  ├─ views.py                # home unificada + reservar_cita + JSON + VIP + paquetes
+│  ├─ whatsapp.py             # send_booking_notifications(...)
+│  ├─ migrations/
+│  │  ├─ __init__.py
+│  │  ├─ 0001_initial.py
+│  │  ├─ 0002_...py
+│  │  └─ ... (todas tus migraciones de Service, Appointment, VipCode, Package, etc.)
+│  │
+│  ├─ templates/
+│  │  └─ citas/
+│  │     ├─ home.html                # la vista principal con Reservas/Servicios/Testimonios/Paquetes/VIP
+│  │     ├─ appointment_form.html    # formulario independiente de reservar_cita (si lo sigues usando)
+│  │     ├─ servicios.html           # vista independiente /servicios/
+│  │     ├─ testimonios.html         # vista independiente /testimonios/
+│  │     ├─ calendar.html            # calendario fullcalendar en el admin externo
+│  │     └─ appointments_list.html   # listado de citas
+│  │
+│  ├─ static/
+│  │  └─ citas/
+│  │     ├─ style.css                # estilos de la web pública (cards, hero, etc.)
+│  │     └─ admin/
+│  │        └─ custom.css            # tema rosado del admin
+│  │
+│  └─ tests.py (si lo hubieras creado)
+│
+├─ staticfiles/                # carpeta que Render usa tras collectstatic (se genera en el build)
+│   └─ ... (copias de tus estáticos)
+│
+├─ media/
+│  ├─ before_after/            # imágenes “antes/después”
+│  ├─ home_backgrounds/        # imagen de fondo configurada en HomeBackground
+│  └─ packages/                # imágenes de Package (paquetes)
+│
+└─ .gitignore
