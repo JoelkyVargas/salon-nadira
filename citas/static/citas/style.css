@@ -61,8 +61,6 @@ input, select {
 }
 
 /* ---------- Horas no disponibles (select) ---------- */
-/* Nota: además del texto tachado que enviamos desde la vista,
-   aquí reforzamos visualmente las opciones deshabilitadas. */
 #time-select option[disabled] {
   color: #6c757d;
   opacity: .75;
