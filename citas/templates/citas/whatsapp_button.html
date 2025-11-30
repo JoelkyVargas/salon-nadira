@@ -1,0 +1,43 @@
+<div class="whatsapp-fab">
+  <a href="#"
+     id="whatsapp-fab-link"
+     aria-label="Chatear por WhatsApp">
+    <i class="bi bi-whatsapp"></i>
+    <span class="visually-hidden">
+      Abrir conversación de WhatsApp con Nadira Fashion
+    </span>
+  </a>
+</div>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const link = document.getElementById("whatsapp-fab-link");
+    if (!link) return;
+
+    // ⚠️ REEMPLAZAR con el número real de tu esposa (sin +, sin espacios).
+    // Ejemplo: "50688887777"
+    const phone = "50685742863";
+
+    function buildHref() {
+      const base = (window.innerWidth <= 768)
+        ? "https://api.whatsapp.com/send"
+        : "https://web.whatsapp.com/send";
+
+      const text = "Hola! Acabo de visitar tu página web y me gustaría pedirte más información.";
+      const params = new URLSearchParams({
+        phone: phone,
+        text: text
+      });
+
+      return base + "?" + params.toString();
+    }
+
+    // Set inicial
+    link.href = buildHref();
+
+    // Recalcular justo antes de abrir (por si cambia el tamaño de pantalla)
+    link.addEventListener("click", function () {
+      this.href = buildHref();
+    });
+  });
+</script>

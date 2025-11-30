@@ -116,7 +116,7 @@ input, select {
   text-transform: uppercase;
 }
 
-/* ---------- Promociones ---------- */
+/* ---------- Promociones / Paquetes ---------- */
 .promo-card {
   border-radius: 16px;
 }
@@ -155,4 +155,70 @@ input, select {
   background-color: #f5d76e;
   color: #5c4b11;
   font-weight: 700;
+}
+
+/* =========================================================
+   BOTÓN FLOTANTE DE WHATSAPP (optimizado para móvil)
+   ========================================================= */
+.whatsapp-fab {
+  position: fixed;
+  bottom: 16px;
+  right: 16px;
+  z-index: 1050;
+}
+
+.whatsapp-fab a {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: #25D366;
+  color: #ffffff;
+  text-decoration: none;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.25);
+  font-size: 1.7rem;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+.whatsapp-fab a:hover {
+  transform: translateY(-1px) scale(1.03);
+  box-shadow: 0 10px 24px rgba(0,0,0,0.30);
+  background: #20c659;
+  color: #ffffff;
+}
+
+.whatsapp-fab a:active {
+  transform: translateY(1px) scale(0.98);
+  box-shadow: 0 5px 14px rgba(0,0,0,0.22);
+}
+
+.whatsapp-fab i {
+  line-height: 1;
+}
+
+/* Texto accesible solo para lectores de pantalla */
+.whatsapp-fab .visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}
+
+@media (min-width: 768px) {
+  .whatsapp-fab {
+    bottom: 24px;
+    right: 24px;
+  }
+
+  .whatsapp-fab a {
+    width: 64px;
+    height: 64px;
+    font-size: 1.9rem;
+  }
 }

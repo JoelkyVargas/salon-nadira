@@ -7,6 +7,69 @@ RECOLECCIÓN DE ARCHIVOS DEL PROYECTO: C:\Users\jvz16\Proyectos\salon_agenda
 
 ================================================================================
 
+>>> ARCHIVO: Estructura.txt
+--------------------------------------------------------------------------------
+salon_agenda/
+├─ manage.py
+├─ requirements.txt
+├─ runtime.txt                # (opcional, si lo creaste para fijar versión Python)
+├─ Procfile                   # (si lo estás usando en Render para gunicorn)
+├─ render.yaml                # (si configuraste deploy vía YAML)
+├─ .env.example               # (si lo generamos para documentar variables)
+├─ salon/
+│  ├─ __init__.py
+│  ├─ asgi.py
+│  ├─ settings.py
+│  ├─ urls.py                 # incluye: path("", include("citas.urls"))
+│  ├─ wsgi.py
+│  └─ static/                 # (a veces se deja aquí, a veces a nivel raíz)
+│
+├─ citas/
+│  ├─ __init__.py
+│  ├─ admin.py
+│  ├─ apps.py
+│  ├─ forms.py
+│  ├─ models.py               # Service, ServiceCategory, Appointment, BlockedSlot,
+│  │                          # Testimonial, BeforeAfter, HomeBackground,
+│  │                          # VipCode, Package
+│  ├─ urls.py                 # home, reservar, agenda, api/available-times, etc.
+│  ├─ views.py                # home unificada + reservar_cita + JSON + VIP + paquetes
+│  ├─ whatsapp.py             # send_booking_notifications(...)
+│  ├─ migrations/
+│  │  ├─ __init__.py
+│  │  ├─ 0001_initial.py
+│  │  ├─ 0002_...py
+│  │  └─ ... (todas tus migraciones de Service, Appointment, VipCode, Package, etc.)
+│  │
+│  ├─ templates/
+│  │  └─ citas/
+│  │     ├─ home.html                # la vista principal con Reservas/Servicios/Testimonios/Paquetes/VIP
+│  │     ├─ appointment_form.html    # formulario independiente de reservar_cita (si lo sigues usando)
+│  │     ├─ servicios.html           # vista independiente /servicios/
+│  │     ├─ testimonios.html         # vista independiente /testimonios/
+│  │     ├─ calendar.html            # calendario fullcalendar en el admin externo
+│  │     └─ appointments_list.html   # listado de citas
+│  │
+│  ├─ static/
+│  │  └─ citas/
+│  │     ├─ style.css                # estilos de la web pública (cards, hero, etc.)
+│  │     └─ admin/
+│  │        └─ custom.css            # tema rosado del admin
+│  │
+│  └─ tests.py (si lo hubieras creado)
+│
+├─ staticfiles/                # carpeta que Render usa tras collectstatic (se genera en el build)
+│   └─ ... (copias de tus estáticos)
+│
+├─ media/
+│  ├─ before_after/            # imágenes “antes/después”
+│  ├─ home_backgrounds/        # imagen de fondo configurada en HomeBackground
+│  └─ packages/                # imágenes de Package (paquetes)
+│
+└─ .gitignore
+
+================================================================================
+
 >>> ARCHIVO: manage.py
 --------------------------------------------------------------------------------
 #!/usr/bin/env python
@@ -32160,64 +32223,100 @@ def home(request):
       - Paquetes públicos y Paquetes VIP
       - Código VIP que muestra directamente la sección VIP al enviar.
     """
-    # Para controlar qué sección se muestra inmediatamente tras un POST
+    # Qué sección debe quedar visible tras un POST
     initial_section = None
 
-    # --- Reservas ---
+    # --- Variables comunes ---
     success = None
-    selected_date = None
-    selected_service_id = None
-    service_duration = None
+    available_times = None
 
-    if request.method == "POST" and request.POST.get("action") == "booking":
-        selected_date = request.POST.get("date")
-        selected_service_id = request.POST.get("service")
+    # Para VIP
+    vip_owner_name = None
+    vip_packages = None
+    vip_error = None
 
-        if selected_service_id:
-            svc = Service.objects.filter(id=selected_service_id).only("duration_minutes").first()
-            if svc:
-                service_duration = getattr(svc, "duration_minutes", 60)
+    # --- Lógica POST (puede ser reserva o VIP) ---
+    if request.method == "POST":
+        # Detectamos formulario VIP por presencia de vip_code
+        if "vip_code" in request.POST:
+            code_str = request.POST.get("vip_code", "").strip()
+            if code_str:
+                vip = VipCode.objects.filter(code=code_str, active=True).first()
+                if vip:
+                    vip_owner_name = vip.name  # usamos este nombre en el template
+                    vip_packages = Package.objects.filter(active=True, vip_only=True).order_by("title")
 
-        available_times = _available_times_for_date(selected_date, service_duration) if selected_date else None
-        form = AppointmentForm(request.POST or None, available_times=available_times)
+                    for pkg in vip_packages:
+                        if pkg.price is not None:
+                            try:
+                                value = int(pkg.price)
+                                pkg.formatted_price = f"{value:,}".replace(",", ".")
+                            except (TypeError, ValueError):
+                                pkg.formatted_price = ""
 
-        if form.is_valid():
-            ap = form.save()
-            success = "¡Cita reservada con éxito!"
-            try:
-                send_booking_notifications(ap)
-            except Exception as e:
-                print("WHATSAPP send error:", e)
-            form = AppointmentForm(available_times=None)
-            initial_section = "reservar"  # mostrar sección reservas tras éxito
+                else:
+                    vip_error = "Código VIP inválido o inactivo."
+            else:
+                vip_error = "Por favor ingresá tu código VIP."
+
+            # Después de enviar código VIP, mostramos la sección VIP
+            initial_section = "vip"
+            # El formulario de reserva se muestra vacío
+            form = AppointmentForm()
+
+        else:
+            # --------- Formulario de RESERVA ----------
+            selected_date = request.POST.get("date")
+            selected_service_id = request.POST.get("service")
+            service_duration = None
+
+            if selected_service_id:
+                svc = Service.objects.filter(
+                    id=selected_service_id
+                ).only("duration_minutes").first()
+                if svc:
+                    service_duration = getattr(svc, "duration_minutes", 60)
+
+            available_times = _available_times_for_date(
+                selected_date,
+                service_duration
+            ) if selected_date else None
+
+            form = AppointmentForm(
+                request.POST or None,
+                available_times=available_times
+            )
+
+            if form.is_valid():
+                ap = form.save()
+                success = "¡Cita reservada con éxito!"
+                try:
+                    send_booking_notifications(ap)
+                except Exception as e:
+                    print("WHATSAPP send error:", e)
+
+                # Limpiamos el formulario tras guardar
+                form = AppointmentForm()
+            # Tras reservar, dejamos visible la sección de reservas
+            initial_section = "reservar"
+
     else:
-        # GET o POST de otro tipo (VIP)
-        # No recalculamos horas aquí; el dropdown se completará vía JS /api/available-times/
+        # GET: formulario de reserva vacío,
+        # el dropdown de horas se llenará vía JS /api/available-times/
         form = AppointmentForm()
-        available_times = None
 
     # --- Paquetes públicos ---
     public_packages = Package.objects.filter(active=True, vip_only=False).order_by("title")
 
-    # --- VIP: validación de código y paquetes VIP ---
-    vip_client_name = None
-    vip_packages = None
-    vip_error = None
+    # Formateo de precios con miles separados por punto
+    for pkg in public_packages:
+        if pkg.price is not None:
+            try:
+                value = int(pkg.price)
+                pkg.formatted_price = f"{value:,}".replace(",", ".")
+            except (TypeError, ValueError):
+                pkg.formatted_price = ""
 
-    if request.method == "POST" and request.POST.get("action") == "vip":
-        code_str = request.POST.get("vip_code", "").strip()
-        if code_str:
-            vip = VipCode.objects.filter(code=code_str, active=True).first()
-            if vip:
-                vip_client_name = vip.name  # o el campo que hayas definido en VipCode
-                vip_packages = Package.objects.filter(active=True, vip_only=True).order_by("title")
-                initial_section = "vip"  # mostrar directamente Clientes VIP
-            else:
-                vip_error = "Código VIP inválido o inactivo."
-                initial_section = "vip"
-        else:
-            vip_error = "Por favor ingresá tu código VIP."
-            initial_section = "vip"
 
     # --- Servicios y testimonios para la vista unificada ---
     services = Service.objects.filter(active=True).order_by("name")
@@ -32230,7 +32329,7 @@ def home(request):
     # --- Fondo configurable desde el admin ---
     background = HomeBackground.objects.filter(active=True).first()
 
-    # Año actual para el footer
+    # Año actual para el footer (si lo querés usar)
     now = timezone.now()
 
     return render(request, "citas/home.html", {
@@ -32241,7 +32340,7 @@ def home(request):
         "testimonios": testimonios,
         "background": background,
         "public_packages": public_packages,
-        "vip_client_name": vip_client_name,
+        "vip_owner_name": vip_owner_name,   # 👈 nombre que usa tu template
         "vip_packages": vip_packages,
         "vip_error": vip_error,
         "initial_section": initial_section,
@@ -33233,6 +33332,61 @@ input, select {
   font-weight: 700;
 }
 
+
+
+
+
+
+/* ---------- Botón flotante de WhatsApp (mobile-first) ---------- */
+.whatsapp-float {
+  position: fixed;
+  right: 14px;
+  bottom: 14px;
+  z-index: 1050;
+  background-color: #25D366;
+  color: #ffffff;
+  border-radius: 50%;
+  width: 52px;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  box-shadow: 0 6px 14px rgba(0,0,0,0.25);
+  font-size: 1.4rem;
+}
+
+/* Ocultamos el texto en móvil, solo icono redondo */
+.whatsapp-float-label {
+  display: none;
+}
+
+.whatsapp-float:hover {
+  background-color: #1ebe57;
+  color: #ffffff;
+}
+
+/* En pantallas medianas, mostramos una pastilla con texto + icono */
+@media (min-width: 768px) {
+  .whatsapp-float {
+    border-radius: 999px;
+    width: auto;
+    height: auto;
+    padding: 0.55rem 0.9rem;
+    font-size: 0.95rem;
+    gap: 0.4rem;
+  }
+
+  .whatsapp-float-icon {
+    font-size: 1.2rem;
+  }
+
+  .whatsapp-float-label {
+    display: inline-block;
+    font-weight: 600;
+  }
+}
+
 ================================================================================
 
 >>> ARCHIVO: citas\templates\citas\appointment_form.html
@@ -33520,7 +33674,8 @@ input, select {
     .hero{padding:3rem 0}
   </style>
 </head>
-<body class="bg-light">
+<body class="bg-light"
+      data-initial-section="{% if vip_packages or vip_error %}vip{% endif %}">
 
 <!-- NAV (sin botones repetidos a la derecha) -->
 <nav class="navbar navbar-expand-lg bg-white border-bottom sticky-top">
@@ -33690,7 +33845,7 @@ input, select {
   </div>
 </section>
 
-<!-- PAQUETES (no-VIP o generales; si no usás esto, podés dejarlo simple) -->
+<!-- PAQUETES (no-VIP o generales) -->
 <section id="paquetes"
          data-section="paquetes"
          class="container py-5 toggle-section d-none">
@@ -33713,8 +33868,9 @@ input, select {
               <p class="text-muted mb-2">{{ p.description }}</p>
             {% endif %}
             {% if p.show_price and p.price %}
-              <span class="badge bg-light text-dark">
-                ₡{{ p.price|floatformat:0|stringformat:".0f" }}
+              <span class="badge bg-light text-dark price-colones"
+                    data-price="{{ p.price }}">
+                ₡{{ p.price }}
               </span>
             {% else %}
               <span class="badge bg-light text-dark">Consultar precio con propietaria</span>
@@ -33739,7 +33895,7 @@ input, select {
     💎 Si sos clienta VIP, ingresá tu código para ver tus paquetes exclusivos.
   </p>
 
-  <!-- Formulario VIP sin los textos que querés eliminar -->
+  <!-- Formulario VIP -->
   <form method="post" class="mb-3">
     {% csrf_token %}
     <div class="row g-2 align-items-center">
@@ -33787,8 +33943,9 @@ input, select {
               <p class="text-muted mb-2">{{ p.description }}</p>
             {% endif %}
             {% if p.show_price and p.price %}
-              <span class="badge bg-light text-dark">
-                ₡{{ p.price|floatformat:0|stringformat:".0f" }}
+              <span class="badge bg-light text-dark price-colones"
+                    data-price="{{ p.price }}">
+                ₡{{ p.price }}
               </span>
             {% else %}
               <span class="badge bg-light text-dark">Consultar precio con propietaria</span>
@@ -33806,7 +33963,7 @@ input, select {
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
-<!-- JS 1: mostrar/ocultar secciones según clic -->
+<!-- JS 1: mostrar/ocultar secciones según clic + abrir sección inicial + formatear precios -->
 <script>
   document.addEventListener("DOMContentLoaded", function () {
     const sections = document.querySelectorAll(".toggle-section");
@@ -33833,8 +33990,25 @@ input, select {
       });
     });
 
-    // Por defecto podés mostrar la sección de Reservar:
-    // showSection("reservar");
+    // 👉 Si hay paquetes VIP o error, abrimos directamente la sección VIP
+    const initialSection = document.body.dataset.initialSection;
+    if (initialSection) {
+      showSection(initialSection);
+    }
+
+    // 👉 Formatear precios de colones con punto de miles
+    const priceEls = document.querySelectorAll(".price-colones");
+    priceEls.forEach(function (el) {
+      const raw = el.getAttribute("data-price");
+      if (!raw) return;
+
+      const num = parseFloat(String(raw).replace(",", "."));
+      if (isNaN(num)) return;
+
+      const intVal = Math.round(num);
+      const formatted = intVal.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+      el.textContent = "₡" + formatted;
+    });
   });
 </script>
 
@@ -34136,12 +34310,10 @@ INSTALLED_APPS = [
     # 'reservas',
 ]
 
-    
 LANGUAGE_CODE = "es"
 TIME_ZONE = "America/Costa_Rica"
 USE_I18N = True
 USE_TZ = True
-
 
 # -----------------------------------------------
 # MIDDLEWARE
@@ -34181,11 +34353,9 @@ DATABASES = {
 }
 
 # === Si hay DATABASE_URL (como en Render o manualmente con set) ===
-
 if os.getenv("DATABASE_URL"):
     import dj_database_url
     DATABASES["default"] = dj_database_url.config(conn_max_age=600, ssl_require=False)
-
 else:
     DATABASES = {
         "default": {
@@ -34193,7 +34363,6 @@ else:
             "NAME": BASE_DIR / "db.sqlite3",
         }
     }
-
 
 # -----------------------------------------------
 # CONFIGURACIÓN DE TEMPLATES
@@ -34218,12 +34387,18 @@ TEMPLATES = [
 # CONFIGURACIÓN DE ARCHIVOS ESTÁTICOS
 # -----------------------------------------------
 STATIC_URL = '/static/'
-STATIC_ROOT = BASE_DIR
 
+# ✅ NUEVO: carpeta donde tienes tus archivos estáticos del proyecto (CSS, JS, imágenes comunes)
+STATICFILES_DIRS = [
+    BASE_DIR / "static",
+]
 
+# ✅ CAMBIADO: carpeta a donde collectstatic copiará todo para producción (Render + WhiteNoise)
+STATIC_ROOT = BASE_DIR / "staticfiles"
 
-
-# Media (dev local)
+# -----------------------------------------------
+# ARCHIVOS DE MEDIA (subidos por el admin)
+# -----------------------------------------------
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
