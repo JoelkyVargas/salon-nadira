@@ -250,19 +250,24 @@
           {% if t.photos.all %}
             <div class="row g-3 mt-2">
               {% for p in t.photos.all %}
+                <!-- FOTO ANTES -->
                 <div class="col-12 col-md-6">
                   <div class="ratio ratio-16x9 testimonial-frame border rounded overflow-hidden">
-                    <img src="{{ p.before_image.url }}"
-                         class="w-100 h-100 object-fit-cover testimonial-img"
-                         alt="Antes">
+                    <img
+                      src="{{ p.before_image.url }}"
+                      class="w-100 h-100 object-fit-contain testimonial-img"
+                      alt="Antes">
                   </div>
                 </div>
+
                 {% if p.after_image %}
+                <!-- FOTO DESPUÉS -->
                 <div class="col-12 col-md-6">
                   <div class="ratio ratio-16x9 testimonial-frame border rounded overflow-hidden">
-                    <img src="{{ p.after_image.url }}
-                         class="w-100 h-100 object-fit-cover testimonial-img"
-                         alt="Después">
+                    <img
+                      src="{{ p.after_image.url }}"
+                      class="w-100 h-100 object-fit-contain testimonial-img"
+                      alt="Después">
                   </div>
                 </div>
                 {% endif %}
