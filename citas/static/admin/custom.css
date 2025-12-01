@@ -1,0 +1,72 @@
+/* ====================================
+   🎀 Personalización rosada del Admin
+   ==================================== */
+
+/* Color primario */
+:root {
+    --primary: #ff8da1;       /* rosado suave */
+    --secondary: #ffb6c7;
+    --accent: #ff6f8b;        /* rosado más intenso */
+}
+
+/* Header superior */
+#header {
+    background-color: var(--primary) !important;
+}
+
+/* Links principales */
+#header a:link,
+#header a:visited {
+    color: white !important;
+    font-weight: bold;
+}
+
+/* Botones principales */
+.button,
+input[type=submit],
+input[type=button],
+.submit-row input,
+a.button {
+    background: var(--primary) !important;
+    border-color: var(--accent) !important;
+    color: white !important;
+}
+
+/* Hover */
+.button:hover,
+input[type=submit]:hover,
+.submit-row input:hover,
+a.button:hover {
+    background: var(--accent) !important;
+    border-color: var(--primary) !important;
+}
+
+/* Selecciones, checkbox */
+.module h2,
+.inline-group h2,
+.module caption {
+    background: var(--primary) !important;
+    color: white !important;
+}
+
+/* Filtros laterales */
+#changelist-filter {
+    border-left: 4px solid var(--primary);
+}
+
+#changelist-filter a {
+    color: var(--primary) !important;
+}
+
+#changelist-filter a:hover {
+    color: var(--accent) !important;
+}
+
+/* Links en general */
+a {
+    color: var(--primary) !important;
+}
+
+a:hover {
+    color: var(--accent) !important;
+}

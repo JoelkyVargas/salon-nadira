@@ -203,20 +203,23 @@
   </div>
 </section>
 
-<!-- SERVICIOS (AGRUPADOS POR CATEGORÍA) -->
+<!-- SERVICIOS (agrupados por categoría) -->
 <section id="servicios"
          data-section="servicios"
          class="container py-5 toggle-section d-none">
   <h2 class="mb-4" style="color:#ff8da1;font-weight:800;">Servicios</h2>
 
   {% if service_groups %}
-    {% for group in service_groups %}
-      <div class="mb-4 pb-2 {% if not forloop.first %}border-top pt-4{% endif %}">
-        <h3 class="fw-bold mb-3" style="color:#ff8da1; text-transform:uppercase; font-size:1.05rem;">
-          {{ group.label }}
+    {% for category_name, items in service_groups %}
+      <div class="mb-4 pb-3 border-bottom">
+        <!-- Título de la categoría, más grande y destacado -->
+        <h3 class="mb-3"
+            style="color:#ff8da1;font-weight:800;font-size:1.25rem;">
+          {{ category_name }}
         </h3>
+
         <div class="row g-4">
-          {% for s in group.services %}
+          {% for s in items %}
             <div class="col-12 col-md-6 col-lg-4">
               <div class="card h-100 shadow-sm p-3">
                 <h5 class="fw-bold mb-1">{{ s.name }}</h5>
@@ -225,8 +228,6 @@
                 {% endif %}
               </div>
             </div>
-          {% empty %}
-            <p class="text-muted">Aún no hay servicios configurados en esta categoría.</p>
           {% endfor %}
         </div>
       </div>

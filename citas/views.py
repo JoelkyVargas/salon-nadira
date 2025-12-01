@@ -268,11 +268,11 @@ def home(request):
     available_times = None
 
     # Para VIP
-    vip_owner_name = None
+    vip_client_name = None
     vip_packages = None
     vip_error = None
 
-    # --- Lógica POST (puede ser reserva o VIP) ---
+    # --- Lógica POST (puede ser RESERVA o VIP) ---
     if request.method == "POST":
         # Detectamos formulario VIP por presencia de vip_code
         if "vip_code" in request.POST:
@@ -280,9 +280,13 @@ def home(request):
             if code_str:
                 vip = VipCode.objects.filter(code=code_str, active=True).first()
                 if vip:
-                    vip_owner_name = vip.name  # usamos este nombre en el template
-                    vip_packages = Package.objects.filter(active=True, vip_only=True).order_by("title")
-
+                    vip_client_name = vip.name  # usamos este nombre en el template
+                    vip_packages = (
+                        Package.objects
+                        .filter(active=True, vip_only=True)
+                        .order_by("title")
+                    )
+                    # Formatear precios de paquetes VIP con miles separados por punto
                     for pkg in vip_packages:
                         if pkg.price is not None:
                             try:
@@ -290,7 +294,6 @@ def home(request):
                                 pkg.formatted_price = f"{value:,}".replace(",", ".")
                             except (TypeError, ValueError):
                                 pkg.formatted_price = ""
-
                 else:
                     vip_error = "Código VIP inválido o inactivo."
             else:
@@ -334,6 +337,7 @@ def home(request):
 
                 # Limpiamos el formulario tras guardar
                 form = AppointmentForm()
+
             # Tras reservar, dejamos visible la sección de reservas
             initial_section = "reservar"
 
@@ -342,8 +346,11 @@ def home(request):
         # el dropdown de horas se llenará vía JS /api/available-times/
         form = AppointmentForm()
 
-    # --- Paquetes públicos ---
-    public_packages = Package.objects.filter(active=True, vip_only=False).order_by("title")
+    # --- Paquetes públicos (SIEMPRE definidos, GET o POST) ---
+    public_packages = Package.objects.filter(
+        active=True,
+        vip_only=False
+    ).order_by("title")
 
     # Formateo de precios con miles separados por punto
     for pkg in public_packages:
@@ -354,8 +361,35 @@ def home(request):
             except (TypeError, ValueError):
                 pkg.formatted_price = ""
 
-    # --- Servicios y testimonios para la vista unificada ---
-    services = Service.objects.filter(active=True).order_by("name")
+    # --- Servicios agrupados por categoría (para la sección unificada) ---
+    service_groups = []
+
+    # Separamos categorías "normales" de las que se llaman "Otros"
+    all_cats = list(ServiceCategory.objects.all())
+    regular_cats = [c for c in all_cats if c.name.strip().lower() != "otros"]
+    otros_cats = [c for c in all_cats if c.name.strip().lower() == "otros"]
+
+    # 1) Categorías normales (orden alfabético)
+    for cat in sorted(regular_cats, key=lambda c: c.name):
+        qs = Service.objects.filter(active=True, category=cat).order_by("name")
+        if qs.exists():
+            service_groups.append((cat.name, qs))
+
+    # 2) Categorías llamadas "Otros" SIEMPRE después de las demás
+    for cat in sorted(otros_cats, key=lambda c: c.name):
+        qs = Service.objects.filter(active=True, category=cat).order_by("name")
+        if qs.exists():
+            service_groups.append((cat.name, qs))
+
+    # 3) Servicios sin categoría explícita (los ponemos al final bajo "Otros")
+    others_qs = Service.objects.filter(
+        active=True,
+        category__isnull=True
+    ).order_by("name")
+    if others_qs.exists():
+        service_groups.append(("Otros", others_qs))
+
+    # --- Testimonios para la vista unificada ---
     testimonios = (
         Testimonial.objects.filter(active=True)
         .prefetch_related("photos")
@@ -365,20 +399,20 @@ def home(request):
     # --- Fondo configurable desde el admin ---
     background = HomeBackground.objects.filter(active=True).first()
 
-    # Año actual para el footer (si lo querés usar)
+    # Año actual para el footer
     now = timezone.now()
 
     return render(request, "citas/home.html", {
         "form": form,
         "success": success,
         "available_times": available_times,
-        "services": services,
+        "service_groups": service_groups,   # 👈 usado en home.html
         "testimonios": testimonios,
         "background": background,
         "public_packages": public_packages,
-        "vip_owner_name": vip_owner_name,   # nombre que usa tu template
         "vip_packages": vip_packages,
         "vip_error": vip_error,
+        "vip_client_name": vip_client_name,
         "initial_section": initial_section,
         "now": now,
     })
