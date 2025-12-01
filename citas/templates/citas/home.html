@@ -203,25 +203,37 @@
   </div>
 </section>
 
-<!-- SERVICIOS -->
+<!-- SERVICIOS (AGRUPADOS POR CATEGORÍA) -->
 <section id="servicios"
          data-section="servicios"
          class="container py-5 toggle-section d-none">
   <h2 class="mb-4" style="color:#ff8da1;font-weight:800;">Servicios</h2>
-  <div class="row g-4">
-    {% for s in services %}
-      <div class="col-12 col-md-6 col-lg-4">
-        <div class="card h-100 shadow-sm p-3">
-          <h5 class="fw-bold mb-1">{{ s.name }}</h5>
-          {% if s.description %}
-            <p class="text-muted mb-2">{{ s.description }}</p>
-          {% endif %}
+
+  {% if service_groups %}
+    {% for group in service_groups %}
+      <div class="mb-4 pb-2 {% if not forloop.first %}border-top pt-4{% endif %}">
+        <h3 class="fw-bold mb-3" style="color:#ff8da1; text-transform:uppercase; font-size:1.05rem;">
+          {{ group.label }}
+        </h3>
+        <div class="row g-4">
+          {% for s in group.services %}
+            <div class="col-12 col-md-6 col-lg-4">
+              <div class="card h-100 shadow-sm p-3">
+                <h5 class="fw-bold mb-1">{{ s.name }}</h5>
+                {% if s.description %}
+                  <p class="text-muted mb-2">{{ s.description }}</p>
+                {% endif %}
+              </div>
+            </div>
+          {% empty %}
+            <p class="text-muted">Aún no hay servicios configurados en esta categoría.</p>
+          {% endfor %}
         </div>
       </div>
-    {% empty %}
-      <p class="text-muted">Aún no hay servicios configurados.</p>
     {% endfor %}
-  </div>
+  {% else %}
+    <p class="text-muted">Aún no hay servicios configurados.</p>
+  {% endif %}
 </section>
 
 <!-- TESTIMONIOS -->
@@ -248,7 +260,7 @@
                 {% if p.after_image %}
                 <div class="col-12 col-md-6">
                   <div class="ratio ratio-16x9 testimonial-frame border rounded overflow-hidden">
-                    <img src="{{ p.after_image.url }}"
+                    <img src="{{ p.after_image.url }}
                          class="w-100 h-100 object-fit-cover testimonial-img"
                          alt="Después">
                   </div>
@@ -398,7 +410,7 @@
    target="_blank"
    rel="noopener"
    aria-label="Contactar por WhatsApp">
-  <!-- ÚNICO CAMBIO: reemplazamos el texto WA por el logo oficial vía background -->
+  <!-- Logo oficial vía background, sin tocar estilos de la burbuja -->
   <span style="
       display:block;
       width: 70%;

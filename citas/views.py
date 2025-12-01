@@ -11,6 +11,7 @@ from datetime import time as dtime, datetime, timedelta
 from django.http import JsonResponse
 from django.shortcuts import render
 from django.utils import timezone
+from django.db import models  # 👈 NUEVO: para usar Q en filtros
 
 from .forms import AppointmentForm
 from .models import (
@@ -218,6 +219,7 @@ def servicios(request):
     """
     Página independiente /servicios/ con servicios agrupados por categoría (hasta 3)
     y “Otros” para los servicios sin categoría.
+    (Esta vista no la estamos usando en la home unificada, pero se mantiene.)
     """
     categorias = list(ServiceCategory.objects.order_by("name")[:3])
     grupos = []
@@ -347,9 +349,36 @@ def home(request):
             except (TypeError, ValueError):
                 pkg.formatted_price = ""
 
+    # --- Servicios para la vista unificada, AGRUPADOS POR CATEGORÍA ---
+    service_groups = []
 
-    # --- Servicios y testimonios para la vista unificada ---
-    services = Service.objects.filter(active=True).order_by("name")
+    # 1) Categorías distintas de "Otros" (en orden alfabético)
+    categorias = ServiceCategory.objects.order_by("name")
+    for cat in categorias:
+        if cat.name.strip().lower() == "otros":
+            continue
+        qs = Service.objects.filter(active=True, category=cat).order_by("name")
+        if qs.exists():
+            service_groups.append({
+                "label": cat.name,
+                "services": qs,
+            })
+
+    # 2) Grupo "Otros" al final:
+    #    servicios cuya categoría se llama "Otros" + servicios sin categoría.
+    otros_qs = Service.objects.filter(
+        active=True
+    ).filter(
+        models.Q(category__name__iexact="Otros") | models.Q(category__isnull=True)
+    ).order_by("name")
+
+    if otros_qs.exists():
+        service_groups.append({
+            "label": "Otros",
+            "services": otros_qs,
+        })
+
+    # --- Testimonios para la vista unificada ---
     testimonios = (
         Testimonial.objects.filter(active=True)
         .prefetch_related("photos")
@@ -366,11 +395,11 @@ def home(request):
         "form": form,
         "success": success,
         "available_times": available_times,
-        "services": services,
+        "service_groups": service_groups,  # 👈 agrupados y con Otros al final
         "testimonios": testimonios,
         "background": background,
         "public_packages": public_packages,
-        "vip_owner_name": vip_owner_name,   # 👈 nombre que usa tu template
+        "vip_owner_name": vip_owner_name,
         "vip_packages": vip_packages,
         "vip_error": vip_error,
         "initial_section": initial_section,
