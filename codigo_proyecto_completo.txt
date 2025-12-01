@@ -33236,8 +33236,6 @@ input, select {
 }
 
 /* ---------- Horas no disponibles (select) ---------- */
-/* Nota: además del texto tachado que enviamos desde la vista,
-   aquí reforzamos visualmente las opciones deshabilitadas. */
 #time-select option[disabled] {
   color: #6c757d;
   opacity: .75;
@@ -33291,7 +33289,7 @@ input, select {
   text-transform: uppercase;
 }
 
-/* ---------- Promociones ---------- */
+/* ---------- Promociones / Paquetes ---------- */
 .promo-card {
   border-radius: 16px;
 }
@@ -33332,58 +33330,69 @@ input, select {
   font-weight: 700;
 }
 
-
-
-
-
-
-/* ---------- Botón flotante de WhatsApp (mobile-first) ---------- */
-.whatsapp-float {
+/* =========================================================
+   BOTÓN FLOTANTE DE WHATSAPP (optimizado para móvil)
+   ========================================================= */
+.whatsapp-fab {
   position: fixed;
-  right: 14px;
-  bottom: 14px;
+  bottom: 16px;
+  right: 16px;
   z-index: 1050;
-  background-color: #25D366;
-  color: #ffffff;
-  border-radius: 50%;
-  width: 52px;
-  height: 52px;
+}
+
+.whatsapp-fab a {
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: #25D366;
+  color: #ffffff;
   text-decoration: none;
-  box-shadow: 0 6px 14px rgba(0,0,0,0.25);
-  font-size: 1.4rem;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.25);
+  font-size: 1.7rem;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
 }
 
-/* Ocultamos el texto en móvil, solo icono redondo */
-.whatsapp-float-label {
-  display: none;
-}
-
-.whatsapp-float:hover {
-  background-color: #1ebe57;
+.whatsapp-fab a:hover {
+  transform: translateY(-1px) scale(1.03);
+  box-shadow: 0 10px 24px rgba(0,0,0,0.30);
+  background: #20c659;
   color: #ffffff;
 }
 
-/* En pantallas medianas, mostramos una pastilla con texto + icono */
+.whatsapp-fab a:active {
+  transform: translateY(1px) scale(0.98);
+  box-shadow: 0 5px 14px rgba(0,0,0,0.22);
+}
+
+.whatsapp-fab i {
+  line-height: 1;
+}
+
+/* Texto accesible solo para lectores de pantalla */
+.whatsapp-fab .visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}
+
 @media (min-width: 768px) {
-  .whatsapp-float {
-    border-radius: 999px;
-    width: auto;
-    height: auto;
-    padding: 0.55rem 0.9rem;
-    font-size: 0.95rem;
-    gap: 0.4rem;
+  .whatsapp-fab {
+    bottom: 24px;
+    right: 24px;
   }
 
-  .whatsapp-float-icon {
-    font-size: 1.2rem;
-  }
-
-  .whatsapp-float-label {
-    display: inline-block;
-    font-weight: 600;
+  .whatsapp-fab a {
+    width: 64px;
+    height: 64px;
+    font-size: 1.9rem;
   }
 }
 
@@ -33672,12 +33681,92 @@ input, select {
     .nav-link{font-weight:700}
     section{scroll-margin-top:100px}
     .hero{padding:3rem 0}
+
+    /* ---------- HERO MENU (5 rectángulos + fondo) ---------- */
+    .hero-menu {
+      min-height: 260px;
+      background-size: cover;
+      background-position: center;
+      position: relative;
+    }
+
+    .hero-menu-fallback {
+      background: radial-gradient(circle at top, #ffd1dc, #ff8da1 40%, #f7f7fb 80%);
+    }
+
+    .hero-menu-overlay {
+      background: rgba(0,0,0,0.35);
+      width: 100%;
+      height: 100%;
+      padding: 2rem 0 3rem 0;
+    }
+
+    .hero-menu-card {
+      display: block;
+      padding: 1rem 0.75rem;
+      border-radius: 18px;
+      text-decoration: none;
+      background: rgba(255, 141, 161, 0.9);
+      color: #ffffff;
+      font-weight: 700;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.25);
+      backdrop-filter: blur(2px);
+      transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+    }
+
+    .hero-menu-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 14px 30px rgba(0,0,0,0.3);
+      background: rgba(255, 141, 161, 1);
+      color: #ffffff;
+    }
+
+    .hero-menu-title {
+      font-size: 0.95rem;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+    }
+
+    /* ---------- Botón flotante de WhatsApp ---------- */
+    .whatsapp-floating {
+      position: fixed;
+      bottom: 16px;
+      right: 16px;
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background-color: #25D366;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.35);
+      z-index: 999;
+      text-decoration: none;
+    }
+
+    .whatsapp-floating span {
+      color: #ffffff;
+      font-weight: 700;
+      font-size: 1.4rem;
+      line-height: 1;
+    }
+
+    @media (max-width: 576px) {
+      .whatsapp-floating {
+        bottom: 12px;
+        right: 12px;
+        width: 52px;
+        height: 52px;
+      }
+      .whatsapp-floating span {
+        font-size: 1.3rem;
+      }
+    }
   </style>
 </head>
-<body class="bg-light"
-      data-initial-section="{% if vip_packages or vip_error %}vip{% endif %}">
+<body class="bg-light">
 
-<!-- NAV (sin botones repetidos a la derecha) -->
+<!-- NAV -->
 <nav class="navbar navbar-expand-lg bg-white border-bottom sticky-top">
   <div class="container">
     <a class="navbar-brand fw-bold" href="#top" style="color:#ff8da1;">
@@ -33688,7 +33777,7 @@ input, select {
 
 <a id="top"></a>
 
-<!-- HERO (se mantiene igual) -->
+<!-- HERO -->
 <header class="hero text-center bg-white">
   <div class="container">
     <h1 class="page-title">Agenda tu cita</h1>
@@ -33741,7 +33830,7 @@ input, select {
   </div>
 </section>
 
-<!-- RESERVAR (oculta inicialmente) -->
+<!-- RESERVAR -->
 <section id="reservar"
          data-section="reservar"
          class="container py-4 toggle-section d-none">
@@ -33754,6 +33843,7 @@ input, select {
         {% endif %}
         <form method="post">
           {% csrf_token %}
+          <input type="hidden" name="action" value="booking">  <!-- importante para la vista -->
           <div class="mb-3">
             <label class="form-label">Nombre</label>
             {{ form.customer_name }}
@@ -33783,7 +33873,7 @@ input, select {
   </div>
 </section>
 
-<!-- SERVICIOS (oculta inicialmente) -->
+<!-- SERVICIOS -->
 <section id="servicios"
          data-section="servicios"
          class="container py-5 toggle-section d-none">
@@ -33804,7 +33894,7 @@ input, select {
   </div>
 </section>
 
-<!-- TESTIMONIOS (oculta inicialmente, imágenes más pequeñas) -->
+<!-- TESTIMONIOS -->
 <section id="testimonios"
          data-section="testimonios"
          class="container py-5 toggle-section d-none">
@@ -33845,7 +33935,7 @@ input, select {
   </div>
 </section>
 
-<!-- PAQUETES (no-VIP o generales) -->
+<!-- PAQUETES PÚBLICOS -->
 <section id="paquetes"
          data-section="paquetes"
          class="container py-5 toggle-section d-none">
@@ -33868,9 +33958,14 @@ input, select {
               <p class="text-muted mb-2">{{ p.description }}</p>
             {% endif %}
             {% if p.show_price and p.price %}
-              <span class="badge bg-light text-dark price-colones"
-                    data-price="{{ p.price }}">
-                ₡{{ p.price }}
+              <span class="badge bg-light text-dark">
+                {% with p.price|floatformat:0 as raw_price %}
+                  {% if raw_price|length > 3 %}
+                    ₡{{ raw_price|slice:":-3" }}.{{ raw_price|slice:"-3:" }}
+                  {% else %}
+                    ₡{{ raw_price }}
+                  {% endif %}
+                {% endwith %}
               </span>
             {% else %}
               <span class="badge bg-light text-dark">Consultar precio con propietaria</span>
@@ -33898,6 +33993,7 @@ input, select {
   <!-- Formulario VIP -->
   <form method="post" class="mb-3">
     {% csrf_token %}
+    <input type="hidden" name="action" value="vip">  <!-- importante para initial_section -->
     <div class="row g-2 align-items-center">
       <div class="col-12 col-md-6 col-lg-4">
         <input type="text"
@@ -33918,9 +34014,9 @@ input, select {
   {% endif %}
 
   {% if vip_packages %}
-    {% if vip_owner_name %}
+    {% if vip_client_name %}
       <p class="mb-3" style="font-weight:600;">
-        Bienvenida, {{ vip_owner_name }}. Estos son tus paquetes exclusivos ✨
+        Bienvenida, {{ vip_client_name }}. Estos son tus paquetes exclusivos ✨
       </p>
     {% endif %}
 
@@ -33943,9 +34039,14 @@ input, select {
               <p class="text-muted mb-2">{{ p.description }}</p>
             {% endif %}
             {% if p.show_price and p.price %}
-              <span class="badge bg-light text-dark price-colones"
-                    data-price="{{ p.price }}">
-                ₡{{ p.price }}
+              <span class="badge bg-light text-dark">
+                {% with p.price|floatformat:0 as raw_price %}
+                  {% if raw_price|length > 3 %}
+                    ₡{{ raw_price|slice:":-3" }}.{{ raw_price|slice:"-3:" }}
+                  {% else %}
+                    ₡{{ raw_price }}
+                  {% endif %}
+                {% endwith %}
               </span>
             {% else %}
               <span class="badge bg-light text-dark">Consultar precio con propietaria</span>
@@ -33961,13 +34062,33 @@ input, select {
   <small>© Centro de Belleza &amp; Spa Nadira Fashion</small>
 </footer>
 
+<!-- Botón flotante de WhatsApp -->
+<a href="https://wa.me/50685742863?text=Hola%21%20Acabo%20de%20visitar%20tu%20p%C3%A1gina%20web%20y%20me%20gustar%C3%ADa%20pedirte%20m%C3%A1s%20informaci%C3%B3n."
+   class="whatsapp-floating"
+   target="_blank"
+   rel="noopener"
+   aria-label="Contactar por WhatsApp">
+  <!-- ÚNICO CAMBIO: reemplazamos el texto WA por el logo oficial vía background -->
+  <span style="
+      display:block;
+      width: 70%;
+      height: 70%;
+      background-image: url('https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg');
+      background-size: contain;
+      background-repeat: no-repeat;
+      background-position: center;
+    " aria-hidden="true">
+  </span>
+</a>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
-<!-- JS 1: mostrar/ocultar secciones según clic + abrir sección inicial + formatear precios -->
+<!-- JS 1: mostrar/ocultar secciones según clic + initial_section -->
 <script>
   document.addEventListener("DOMContentLoaded", function () {
     const sections = document.querySelectorAll(".toggle-section");
     const triggers = document.querySelectorAll(".section-link");
+    const initialSection = "{{ initial_section|default:'' }}";
 
     function showSection(name) {
       sections.forEach(function (sec) {
@@ -33990,34 +34111,19 @@ input, select {
       });
     });
 
-    // 👉 Si hay paquetes VIP o error, abrimos directamente la sección VIP
-    const initialSection = document.body.dataset.initialSection;
     if (initialSection) {
       showSection(initialSection);
     }
-
-    // 👉 Formatear precios de colones con punto de miles
-    const priceEls = document.querySelectorAll(".price-colones");
-    priceEls.forEach(function (el) {
-      const raw = el.getAttribute("data-price");
-      if (!raw) return;
-
-      const num = parseFloat(String(raw).replace(",", "."));
-      if (isNaN(num)) return;
-
-      const intVal = Math.round(num);
-      const formatted = intVal.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-      el.textContent = "₡" + formatted;
-    });
+    // else { showSection("reservar"); }
   });
 </script>
 
 <!-- JS 2: Cargar horas disponibles vía /api/available-times/ -->
 <script>
   document.addEventListener("DOMContentLoaded", function () {
-    const dateInput   = document.getElementById("date-input");   // widget del form
-    const serviceSelect = document.getElementById("id_service"); // select de servicio
-    const timeSelect  = document.getElementById("time-select");  // select de horas
+    const dateInput   = document.getElementById("date-input");
+    const serviceSelect = document.getElementById("id_service");
+    const timeSelect  = document.getElementById("time-select");
 
     if (!dateInput || !serviceSelect || !timeSelect) {
       return;
@@ -34206,6 +34312,54 @@ input, select {
     </div>
   {% endfor %}
   ...
+
+================================================================================
+
+>>> ARCHIVO: citas\templates\citas\whatsapp_button.html
+--------------------------------------------------------------------------------
+<div class="whatsapp-fab">
+  <a href="#"
+     id="whatsapp-fab-link"
+     aria-label="Chatear por WhatsApp">
+    <i class="bi bi-whatsapp"></i>
+    <span class="visually-hidden">
+      Abrir conversación de WhatsApp con Nadira Fashion
+    </span>
+  </a>
+</div>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const link = document.getElementById("whatsapp-fab-link");
+    if (!link) return;
+
+    // ⚠️ REEMPLAZAR con el número real de tu esposa (sin +, sin espacios).
+    // Ejemplo: "50688887777"
+    const phone = "50685742863";
+
+    function buildHref() {
+      const base = (window.innerWidth <= 768)
+        ? "https://api.whatsapp.com/send"
+        : "https://web.whatsapp.com/send";
+
+      const text = "Hola! Acabo de visitar tu página web y me gustaría pedirte más información.";
+      const params = new URLSearchParams({
+        phone: phone,
+        text: text
+      });
+
+      return base + "?" + params.toString();
+    }
+
+    // Set inicial
+    link.href = buildHref();
+
+    // Recalcular justo antes de abrir (por si cambia el tamaño de pantalla)
+    link.addEventListener("click", function () {
+      this.href = buildHref();
+    });
+  });
+</script>
 
 ================================================================================
 
