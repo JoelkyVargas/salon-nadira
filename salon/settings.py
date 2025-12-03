@@ -115,12 +115,12 @@ TEMPLATES = [
 # -----------------------------------------------
 STATIC_URL = '/static/'
 
-# ✅ NUEVO: carpeta donde tienes tus archivos estáticos del proyecto (CSS, JS, imágenes comunes)
+# ✅ carpeta donde tienes tus archivos estáticos del proyecto (CSS, JS, imágenes comunes)
 STATICFILES_DIRS = [
     BASE_DIR / "static",
 ]
 
-# ✅ CAMBIADO: carpeta a donde collectstatic copiará todo para producción (Render + WhiteNoise)
+# ✅ carpeta a donde collectstatic copiará todo para producción (Render + WhiteNoise)
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
 # -----------------------------------------------
@@ -129,8 +129,20 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
-# Producción: usa almacenamiento externo.
-# Ejemplo Cloudinary:
-# INSTALLED_APPS += ["cloudinary", "cloudinary_storage"]
-# DEFAULT_FILE_STORAGE = "cloudinary_storage.storage.MediaCloudinaryStorage"
-# (Configura CLOUDINARY_URL en Render → Env Vars)
+# -----------------------------------------------
+# ALMACENAMIENTO DE MEDIA EN CLOUDINARY (opcional)
+# -----------------------------------------------
+# Si existe CLOUDINARY_URL en el entorno, usamos Cloudinary para almacenar media.
+CLOUDINARY_URL = os.getenv("CLOUDINARY_URL")
+
+if CLOUDINARY_URL:
+    # Asegúrate de tener instalados:
+    # pip install cloudinary django-cloudinary-storage
+    INSTALLED_APPS += [
+        "cloudinary",
+        "cloudinary_storage",
+    ]
+
+    # Almacenamiento por defecto para archivos subidos (imagenes de paquetes, testimonios, etc.)
+    DEFAULT_FILE_STORAGE = "cloudinary_storage.storage.MediaCloudinaryStorage"
+    # No tocamos STATICFILES_STORAGE porque WhiteNoise maneja los estáticos.
