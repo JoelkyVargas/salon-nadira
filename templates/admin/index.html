@@ -5,15 +5,15 @@
 {% block content %}
 <div id="content-main" class="dashboard-modules">
 
-  <!-- ========================= -->
-  <!--      PANEL PERSONALIZADO  -->
-  <!-- ========================= -->
-
-  <!-- Agenda -->
+  {# ======================= #}
+  {#       AGENDA            #}
+  {# ======================= #}
   <div class="app-agenda module">
     <table>
       <caption>Agenda</caption>
       <tbody>
+
+        {# Citas #}
         <tr class="model-citas">
           <th scope="row">
             <a href="{% url 'admin:citas_appointment_changelist' %}">Citas</a>
@@ -24,6 +24,7 @@
           </td>
         </tr>
 
+        {# Auto bloqueos #}
         <tr class="model-bloqueos">
           <th scope="row">
             <a href="{% url 'admin:citas_blockedslot_changelist' %}">Auto bloqueos</a>
@@ -32,16 +33,19 @@
             <a href="{% url 'admin:citas_blockedslot_add' %}" class="addlink">Añadir</a>
           </td>
         </tr>
-      </tbody>
-    </table>
-  </div>
 
-  <!-- Servicios -->
-  <div class="app-servicios module">
-    <table>
-      <caption>Servicios</caption>
-      <tbody>
-        <tr class="model-servicio">
+        {# Categorías de servicio #}
+        <tr class="model-servicecategory">
+          <th scope="row">
+            <a href="{% url 'admin:citas_servicecategory_changelist' %}">Categorías de servicio</a>
+          </th>
+          <td class="actionlist">
+            <a href="{% url 'admin:citas_servicecategory_add' %}" class="addlink">Añadir</a>
+          </td>
+        </tr>
+
+        {# Servicios #}
+        <tr class="model-service">
           <th scope="row">
             <a href="{% url 'admin:citas_service_changelist' %}">Servicios</a>
           </th>
@@ -49,11 +53,54 @@
             <a href="{% url 'admin:citas_service_add' %}" class="addlink">Añadir</a>
           </td>
         </tr>
+
+        {# Testimonios #}
+        <tr class="model-testimonial">
+          <th scope="row">
+            <a href="{% url 'admin:citas_testimonial_changelist' %}">Testimonios</a>
+          </th>
+          <td class="actionlist">
+            <a href="{% url 'admin:citas_testimonial_add' %}" class="addlink">Añadir</a>
+          </td>
+        </tr>
+
+        {# Paquetes (promociones) #}
+        <tr class="model-package">
+          <th scope="row">
+            <a href="{% url 'admin:citas_package_changelist' %}">Paquetes</a>
+          </th>
+          <td class="actionlist">
+            <a href="{% url 'admin:citas_package_add' %}" class="addlink">Añadir</a>
+          </td>
+        </tr>
+
+        {# Códigos VIP #}
+        <tr class="model-vipcode">
+          <th scope="row">
+            <a href="{% url 'admin:citas_vipcode_changelist' %}">Códigos VIP</a>
+          </th>
+          <td class="actionlist">
+            <a href="{% url 'admin:citas_vipcode_add' %}" class="addlink">Añadir</a>
+          </td>
+        </tr>
+
+        {# Fondo de inicio (background de la home) #}
+        <tr class="model-homebackground">
+          <th scope="row">
+            <a href="{% url 'admin:citas_homebackground_changelist' %}">Fondo de inicio</a>
+          </th>
+          <td class="actionlist">
+            <a href="{% url 'admin:citas_homebackground_add' %}" class="addlink">Añadir</a>
+          </td>
+        </tr>
+
       </tbody>
     </table>
   </div>
 
-  <!-- Usuarios y Grupos -->
+  {# ================================== #}
+  {#   AUTENTICACIÓN Y AUTORIZACIÓN    #}
+  {# ================================== #}
   <div class="app-auth module">
     <table>
       <caption>Autenticación y autorización</caption>
@@ -66,7 +113,6 @@
             <a href="{% url 'admin:auth_user_add' %}" class="addlink">Añadir</a>
           </td>
         </tr>
-
         <tr>
           <th scope="row">
             <a href="{% url 'admin:auth_group_changelist' %}">Grupos</a>
@@ -79,52 +125,6 @@
     </table>
   </div>
 
-
-  <!-- ============================================== -->
-  <!--     LISTA COMPLETA DE TODAS LAS APPS/MODELOS    -->
-  <!--  (esto asegura que en CELULAR no falte nada)   -->
-  <!-- ============================================== -->
-
-  <hr style="margin:40px 0; opacity:.4;">
-
-  <h2 style="color:#ff8da1; font-weight:800; margin-bottom:20px;">
-    Todas las funciones del sistema
-  </h2>
-
-  {% if app_list %}
-    {% for app in app_list %}
-      <div class="app-{{ app.app_label }} module" style="margin-bottom:30px;">
-        <table>
-          <caption>{{ app.name }}</caption>
-          <tbody>
-            {% for model in app.models %}
-              {# Excluye los que ya listaste manualmente para evitar duplicados #}
-              {% if model.object_name not in "Service Appointment BlockedSlot" %}
-                <tr class="model-{{ model.object_name|lower }}">
-                  <th scope="row">
-                    {% if model.admin_url %}
-                      <a href="{{ model.admin_url }}">{{ model.name }}</a>
-                    {% else %}
-                      {{ model.name }}
-                    {% endif %}
-                  </th>
-
-                  <td class="actionlist">
-                    {% if model.add_url %}
-                      <a href="{{ model.add_url }}" class="addlink">{% translate 'Añadir' %}</a>
-                    {% endif %}
-                    {% if model.admin_url %}
-                      <a href="{{ model.admin_url }}" class="changelink">{% translate 'Editar' %}</a>
-                    {% endif %}
-                  </td>
-                </tr>
-              {% endif %}
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    {% endfor %}
-  {% endif %}
-
 </div>
 {% endblock %}
+
