@@ -71,3 +71,19 @@ input, select {
   cursor: not-allowed;
 }
 
+/* =======================================================
+   AJUSTES DEL HERO (FONDO + 5 BOTONES) SOLO EN ESCRITORIO
+   (ahora desde 768px de ancho)
+   ======================================================= */
+@media (min-width: 768px) {
+  /* Más alto para que la foto no se vea tan "aplastada" en compu/tablet */
+  .hero-menu {
+    min-height: 420px !important;
+    background-position: center center !important;
+  }
+
+  .hero-menu-overlay {
+    padding-top: 3.5rem !important;
+    padding-bottom: 4rem !important;
+  }
+}

@@ -57,6 +57,19 @@
       text-transform: uppercase;
     }
 
+    /* 💻 Ajuste solo para pantallas tipo compu / tablet horizontal */
+    @media (min-width: 768px) {
+      .hero-menu {
+        min-height: 420px;              /* más alto en escritorio */
+        background-position: center center;
+      }
+
+      .hero-menu-overlay {
+        padding-top: 3.5rem;
+        padding-bottom: 4rem;
+      }
+    }
+
     /* ---------- Botón flotante de WhatsApp ---------- */
     .whatsapp-floating {
       position: fixed;
@@ -332,7 +345,6 @@
          data-section="vip"
          class="container py-5 toggle-section d-none">
   <h2 class="mb-3" style="color:#ff8da1;font-weight:800;">Clientes VIP 💎</h2>
-
 
   <!-- Formulario VIP -->
   <form method="post" class="mb-3">
