@@ -11,33 +11,42 @@
 #header {
   background: var(--admin-pink);
 }
-#header a:link, #header a:visited {
+#header a:link,
+#header a:visited {
   color: #fff;
 }
 
-/* Botones */
-.button, input[type=submit].default, .submit-row input.default {
+/* Botones principales */
+.button,
+input[type=submit].default,
+.submit-row input.default {
   background: var(--admin-pink);
   border-color: var(--admin-pink);
   color: #fff;
 }
-.button:hover, input[type=submit].default:hover, .submit-row input.default:hover {
+.button:hover,
+input[type=submit].default:hover,
+.submit-row input.default:hover {
   background: var(--admin-pink-dark);
   border-color: var(--admin-pink-dark);
 }
 
-/* Enlaces acción */
-a.addlink, a.changelink, a.deletelink, .object-tools a {
+/* Enlaces de acción (añadir, etc.) */
+a.addlink,
+a.changelink,
+a.deletelink,
+.object-tools a {
   background: var(--admin-pink);
   color: #fff !important;
   border-radius: 6px;
   padding: 6px 10px;
 }
-a.addlink:hover, .object-tools a:hover {
+a.addlink:hover,
+.object-tools a:hover {
   background: var(--admin-pink-dark);
 }
 
-/* Módulos del dashboard */
+/* Módulos del dashboard (nuestros bloques de Agenda / Autenticación) */
 .dashboard-modules .module caption {
   background: var(--admin-pink);
   color: #fff;
@@ -51,7 +60,24 @@ a.addlink:hover, .object-tools a:hover {
 }
 
 /* Tabla change_list */
-#changelist-form .results th, #changelist-form .results td {
+#changelist-form .results th,
+#changelist-form .results td {
   vertical-align: middle;
 }
 
+/* =========================================================
+   RESPONSIVE: dashboard solo en pantallas pequeñas
+   ========================================================= */
+
+/* En pantallas GRANDES (>= 992px):
+   ocultamos nuestro dashboard personalizado para no duplicar
+   lo que ya ofrece el sidebar. */
+@media (min-width: 992px) {
+  #content-main.dashboard-modules {
+    display: none !important;
+  }
+}
+
+/* En pantallas pequeñas (< 992px) no tocamos nada:
+   - El sidebar ya lo esconde el propio Django / layout responsive.
+   - Solo se verá nuestro dashboard compacto (Agenda + Auth). */
