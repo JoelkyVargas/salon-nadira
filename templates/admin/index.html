@@ -4,20 +4,30 @@
 
 {% block content %}
 <div id="content-main" class="dashboard-modules">
+
+  <!-- ========================= -->
+  <!--      PANEL PERSONALIZADO  -->
+  <!-- ========================= -->
+
   <!-- Agenda -->
   <div class="app-agenda module">
     <table>
       <caption>Agenda</caption>
       <tbody>
         <tr class="model-citas">
-          <th scope="row"><a href="{% url 'admin:citas_appointment_changelist' %}">Citas</a></th>
+          <th scope="row">
+            <a href="{% url 'admin:citas_appointment_changelist' %}">Citas</a>
+          </th>
           <td class="actionlist">
             <a href="{% url 'admin:citas_appointment_changelist' %}" class="action">Ver lista</a> |
             <a href="{% url 'admin:citas_appointment_calendar' %}" class="action">Ver calendario</a>
           </td>
         </tr>
+
         <tr class="model-bloqueos">
-          <th scope="row"><a href="{% url 'admin:citas_blockedslot_changelist' %}">Auto bloqueos</a></th>
+          <th scope="row">
+            <a href="{% url 'admin:citas_blockedslot_changelist' %}">Auto bloqueos</a>
+          </th>
           <td class="actionlist">
             <a href="{% url 'admin:citas_blockedslot_add' %}" class="addlink">Añadir</a>
           </td>
@@ -32,7 +42,9 @@
       <caption>Servicios</caption>
       <tbody>
         <tr class="model-servicio">
-          <th scope="row"><a href="{% url 'admin:citas_service_changelist' %}">Servicios</a></th>
+          <th scope="row">
+            <a href="{% url 'admin:citas_service_changelist' %}">Servicios</a>
+          </th>
           <td class="actionlist">
             <a href="{% url 'admin:citas_service_add' %}" class="addlink">Añadir</a>
           </td>
@@ -41,21 +53,78 @@
     </table>
   </div>
 
-  <!-- Autenticación y autorización (abajo del todo) -->
+  <!-- Usuarios y Grupos -->
   <div class="app-auth module">
     <table>
       <caption>Autenticación y autorización</caption>
       <tbody>
         <tr>
-          <th scope="row"><a href="{% url 'admin:auth_user_changelist' %}">Usuarios</a></th>
-          <td class="actionlist"><a href="{% url 'admin:auth_user_add' %}" class="addlink">Añadir</a></td>
+          <th scope="row">
+            <a href="{% url 'admin:auth_user_changelist' %}">Usuarios</a>
+          </th>
+          <td class="actionlist">
+            <a href="{% url 'admin:auth_user_add' %}" class="addlink">Añadir</a>
+          </td>
         </tr>
+
         <tr>
-          <th scope="row"><a href="{% url 'admin:auth_group_changelist' %}">Grupos</a></th>
-          <td class="actionlist"><a href="{% url 'admin:auth_group_add' %}" class="addlink">Añadir</a></td>
+          <th scope="row">
+            <a href="{% url 'admin:auth_group_changelist' %}">Grupos</a>
+          </th>
+          <td class="actionlist">
+            <a href="{% url 'admin:auth_group_add' %}" class="addlink">Añadir</a>
+          </td>
         </tr>
       </tbody>
     </table>
   </div>
+
+
+  <!-- ============================================== -->
+  <!--     LISTA COMPLETA DE TODAS LAS APPS/MODELOS    -->
+  <!--  (esto asegura que en CELULAR no falte nada)   -->
+  <!-- ============================================== -->
+
+  <hr style="margin:40px 0; opacity:.4;">
+
+  <h2 style="color:#ff8da1; font-weight:800; margin-bottom:20px;">
+    Todas las funciones del sistema
+  </h2>
+
+  {% if app_list %}
+    {% for app in app_list %}
+      <div class="app-{{ app.app_label }} module" style="margin-bottom:30px;">
+        <table>
+          <caption>{{ app.name }}</caption>
+          <tbody>
+            {% for model in app.models %}
+              {# Excluye los que ya listaste manualmente para evitar duplicados #}
+              {% if model.object_name not in "Service Appointment BlockedSlot" %}
+                <tr class="model-{{ model.object_name|lower }}">
+                  <th scope="row">
+                    {% if model.admin_url %}
+                      <a href="{{ model.admin_url }}">{{ model.name }}</a>
+                    {% else %}
+                      {{ model.name }}
+                    {% endif %}
+                  </th>
+
+                  <td class="actionlist">
+                    {% if model.add_url %}
+                      <a href="{{ model.add_url }}" class="addlink">{% translate 'Añadir' %}</a>
+                    {% endif %}
+                    {% if model.admin_url %}
+                      <a href="{{ model.admin_url }}" class="changelink">{% translate 'Editar' %}</a>
+                    {% endif %}
+                  </td>
+                </tr>
+              {% endif %}
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% endfor %}
+  {% endif %}
+
 </div>
 {% endblock %}
