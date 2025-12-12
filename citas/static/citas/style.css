@@ -1,4 +1,7 @@
-/* ---------- Base ---------- */
+/* ===========================================
+   🔒 REGLAS GENERALES (ANTI-CORTES)
+   =========================================== */
+
 html, body, h1, .page-title {
   word-break: normal !important;
   overflow-wrap: normal !important;
@@ -6,17 +9,28 @@ html, body, h1, .page-title {
   hyphens: none !important;
 }
 
-@media (max-width: 380px){
-  .page-title { white-space: normal !important; text-wrap: balance; }
+@media (max-width: 380px) {
+  .page-title {
+    white-space: normal !important;
+    text-wrap: balance;
+  }
 }
 
-body { background: #f7f7fb; }
+/* ===========================================
+   🎨 ESTILOS GENERALES
+   =========================================== */
 
-/* ---------- Card / tipografía ---------- */
+.form-wrap {
+  max-width: 720px;
+  min-width: 320px;
+  margin: 40px auto;
+  overflow-x: auto;
+}
+
 .card {
   padding: 20px;
   border-radius: 12px;
-  box-shadow: 0 8px 22px rgba(0,0,0,.08);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.08);
   background: #fff;
 }
 
@@ -34,9 +48,9 @@ input, select {
   border-radius: 8px;
   border: 1px solid #ced4da;
   width: 100%;
+  margin-bottom: 10px;
 }
 
-/* ---------- Botón primario (rosa) ---------- */
 .btn-primary {
   background-color: #ff8da1;
   border-color: #ff8da1;
@@ -51,7 +65,6 @@ input, select {
   border-color: #ff7b9c;
 }
 
-/* ---------- Alertas ---------- */
 .alert-success {
   background-color: #ffe6eb;
   color: #b84a62;
@@ -60,21 +73,18 @@ input, select {
   text-align: center;
 }
 
-/* ---------- Horas no disponibles (select) ---------- */
-#time-select option[disabled] {
-  color: #6c757d;
-  opacity: .75;
-  text-decoration: line-through;
-  font-style: italic;
-  cursor: not-allowed;
-}
+/* ===========================================
+   HERO MENU (imagen + 5 botones)
+   =========================================== */
 
-/* ---------- HERO MENU (5 rectángulos + fondo) ---------- */
 .hero-menu {
-  min-height: 260px;
+  width: 100%;
+  position: relative;
   background-size: cover;
   background-position: center;
-  position: relative;
+  overflow: hidden;
+  aspect-ratio: 1 / 1;
+  min-height: 320px;
 }
 
 .hero-menu-fallback {
@@ -86,6 +96,8 @@ input, select {
   width: 100%;
   height: 100%;
   padding: 2rem 0 3rem 0;
+  display: flex;
+  align-items: center;
 }
 
 .hero-menu-card {
@@ -114,109 +126,31 @@ input, select {
   text-transform: uppercase;
 }
 
-/* ---------- Promociones / Paquetes ---------- */
-.promo-card {
-  border-radius: 16px;
-}
-
-.promo-card img {
-  object-fit: cover;
-}
-
-.vip-card {
-  border: 2px solid #ffd1dc;
-}
-
-
-/* ---------- Imágenes más pequeñas en testimonios ---------- */
-.testimonial-frame {
-  max-width: 260px;
-  margin: 0 auto;
-}
-
-.testimonial-img {
-  object-fit: cover;
-}
-
-/* ---------- Imágenes de paquetes (públicos y VIP) ---------- */
-.package-frame {
-  max-width: 260px;
-  margin: 0 auto;
-}
-
-.package-img {
-  object-fit: cover;
-}
-
-/* ---------- Badge "Exclusivo VIP" dorado ---------- */
-.vip-exclusive-badge {
-  background-color: #f5d76e;
-  color: #5c4b11;
-  font-weight: 700;
-}
-
-/* =========================================================
-   BOTÓN FLOTANTE DE WHATSAPP (optimizado para móvil)
-   ========================================================= */
-.whatsapp-fab {
-  position: fixed;
-  bottom: 16px;
-  right: 16px;
-  z-index: 1050;
-}
-
-.whatsapp-fab a {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 60px;
-  height: 60px;
-  border-radius: 50%;
-  background: #25D366;
-  color: #ffffff;
-  text-decoration: none;
-  box-shadow: 0 8px 20px rgba(0,0,0,0.25);
-  font-size: 1.7rem;
-  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
-}
-
-.whatsapp-fab a:hover {
-  transform: translateY(-1px) scale(1.03);
-  box-shadow: 0 10px 24px rgba(0,0,0,0.30);
-  background: #20c659;
-  color: #ffffff;
-}
-
-.whatsapp-fab a:active {
-  transform: translateY(1px) scale(0.98);
-  box-shadow: 0 5px 14px rgba(0,0,0,0.22);
-}
-
-.whatsapp-fab i {
-  line-height: 1;
-}
-
-/* Texto accesible solo para lectores de pantalla */
-.whatsapp-fab .visually-hidden {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  border: 0;
-}
-
+/* iPad / tablet */
 @media (min-width: 768px) {
-  .whatsapp-fab {
-    bottom: 24px;
-    right: 24px;
+  .hero-menu {
+    aspect-ratio: 4 / 3;
+    min-height: 420px;
   }
 
-  .whatsapp-fab a {
-    width: 64px;
-    height: 64px;
-    font-size: 1.9rem;
+  .hero-menu-overlay {
+    padding-top: 3.5rem;
+    padding-bottom: 4rem;
+  }
+}
+
+/* Desktop */
+@media (min-width: 1200px) {
+  .hero-menu {
+    aspect-ratio: 16 / 9;
+    min-height: 520px;
+  }
+}
+
+/* Muy ancho */
+@media (min-width: 1600px) {
+  .hero-menu {
+    aspect-ratio: 3 / 1;
+    min-height: 560px;
   }
 }
