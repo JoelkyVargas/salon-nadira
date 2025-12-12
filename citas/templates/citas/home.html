@@ -12,13 +12,34 @@
     section{scroll-margin-top:100px}
     .hero{padding:3rem 0}
 
-    /* ---------- HERO MENU (5 rectángulos + fondo) ---------- */
+    /* ---------- HERO MENU (5 rectángulos + fondo) ----------
+       Objetivo: reducir “aplanado” en pantallas anchas SIN fijar un aspect-ratio rígido.
+       Estrategia:
+       1) Altura mínima fluida con clamp() (sube gradualmente en pantallas más anchas).
+       2) Overlay centrado verticalmente (evita franja oscura arriba cuando la sección crece).
+       3) Opcional: limitar el ancho máximo del bloque para que el fondo no se estire demasiado.
+    */
     .hero-menu {
-      /* Altura fluida: crece con el ancho de viewport (sin "brincos") */
-      height: clamp(280px, 32vw, 520px);
+      /* Altura mínima fluida:
+         - mínimo 280px
+         - escala con viewport (vw)
+         - máximo 520px
+         Esto evita que en pantallas anchas se quede bajita/achatada.
+      */
+      min-height: clamp(280px, 32vw, 520px);
+
       background-size: cover;
       background-position: center;
       position: relative;
+
+      /* Limitar el ancho del “bloque visual” (opción B):
+         En desktop muy ancho, evita que se vea como “pancake”.
+         Si no quieres limitar el ancho, elimina estas 3 líneas.
+      */
+      max-width: 1200px;
+      margin: 0 auto;
+      border-radius: 18px;
+      overflow: hidden;
     }
 
     .hero-menu-fallback {
@@ -30,19 +51,20 @@
       width: 100%;
       height: 100%;
 
-      /* Centrado vertical real: elimina la “franja” oscura superior rara */
+      /* Padding fluido para que no “brinque” por breakpoints */
+      padding: clamp(1.25rem, 3vw, 2.5rem) 0;
+
+      /* Centrado vertical y horizontal del contenido:
+         - evita que cuando el hero crece se vea “vacío” arriba
+         - mantiene los botones centrados sobre la imagen
+      */
       display: flex;
       align-items: center;
-
-      /* Padding fluido (sin saltos) */
-      padding: clamp(1.5rem, 3vw, 3rem) 0;
     }
 
-    /* Limitar ancho del contenido en pantallas muy anchas (reduce “aplanado”) */
-    .hero-menu-inner {
-      width: min(1100px, 100%);
-      margin: 0 auto;
-      padding: 0 12px; /* respiración lateral en pantallas pequeñas */
+    /* Asegura que el contenedor interno tome todo el ancho en el flex */
+    .hero-menu-overlay > .container {
+      width: 100%;
     }
 
     .hero-menu-card {
@@ -136,7 +158,7 @@
 <section class="hero-menu hero-menu-fallback">
 {% endif %}
   <div class="hero-menu-overlay">
-    <div class="hero-menu-inner">
+    <div class="container">
       <div class="row g-3 justify-content-center">
 
         <div class="col-6 col-md-4 col-lg-2">
@@ -414,7 +436,7 @@
   <small>© Centro de Belleza &amp; Spa Nadira Fashion</small>
 </footer>
 
-<!-- Botón flotante de WhatsApp (NO TOCADO) -->
+<!-- Botón flotante de WhatsApp -->
 <a href="https://wa.me/50685742863?text=Hola%21%20Acabo%20de%20visitar%20tu%20p%C3%A1gina%20web%20y%20me%20gustar%C3%ADa%20pedirte%20m%C3%A1s%20informaci%C3%B3n."
    class="whatsapp-floating"
    target="_blank"
@@ -434,7 +456,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
-<!-- JS 1: mostrar/ocultar secciones según clic + initial_section (NO TOCADO) -->
+<!-- JS 1: mostrar/ocultar secciones según clic + initial_section -->
 <script>
   document.addEventListener("DOMContentLoaded", function () {
     const sections = document.querySelectorAll(".toggle-section");
@@ -468,7 +490,7 @@
   });
 </script>
 
-<!-- JS 2: Cargar horas disponibles vía /api/available-times/ (NO TOCADO) -->
+<!-- JS 2: Cargar horas disponibles vía /api/available-times/ -->
 <script>
   document.addEventListener("DOMContentLoaded", function () {
     const dateInput   = document.getElementById("date-input");
