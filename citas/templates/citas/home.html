@@ -14,7 +14,8 @@
 
     /* ---------- HERO MENU (5 rectángulos + fondo) ---------- */
     .hero-menu {
-      min-height: 260px;
+      /* Altura fluida: crece con el ancho de viewport (sin "brincos") */
+      height: clamp(280px, 32vw, 520px);
       background-size: cover;
       background-position: center;
       position: relative;
@@ -28,7 +29,20 @@
       background: rgba(0,0,0,0.35);
       width: 100%;
       height: 100%;
-      padding: 2rem 0 3rem 0;
+
+      /* Centrado vertical real: elimina la “franja” oscura superior rara */
+      display: flex;
+      align-items: center;
+
+      /* Padding fluido (sin saltos) */
+      padding: clamp(1.5rem, 3vw, 3rem) 0;
+    }
+
+    /* Limitar ancho del contenido en pantallas muy anchas (reduce “aplanado”) */
+    .hero-menu-inner {
+      width: min(1100px, 100%);
+      margin: 0 auto;
+      padding: 0 12px; /* respiración lateral en pantallas pequeñas */
     }
 
     .hero-menu-card {
@@ -55,19 +69,6 @@
       font-size: 0.95rem;
       letter-spacing: 0.03em;
       text-transform: uppercase;
-    }
-
-    /* 💻 Ajuste solo para pantallas tipo compu / tablet horizontal */
-    @media (min-width: 768px) {
-      .hero-menu {
-        min-height: 420px;              /* más alto en escritorio */
-        background-position: center center;
-      }
-
-      .hero-menu-overlay {
-        padding-top: 3.5rem;
-        padding-bottom: 4rem;
-      }
     }
 
     /* ---------- Botón flotante de WhatsApp ---------- */
@@ -135,7 +136,7 @@
 <section class="hero-menu hero-menu-fallback">
 {% endif %}
   <div class="hero-menu-overlay">
-    <div class="container">
+    <div class="hero-menu-inner">
       <div class="row g-3 justify-content-center">
 
         <div class="col-6 col-md-4 col-lg-2">
@@ -186,7 +187,7 @@
         {% endif %}
         <form method="post">
           {% csrf_token %}
-          <input type="hidden" name="action" value="booking">  <!-- importante para la vista -->
+          <input type="hidden" name="action" value="booking">
           <div class="mb-3">
             <label class="form-label">Nombre</label>
             {{ form.customer_name }}
@@ -225,9 +226,7 @@
   {% if service_groups %}
     {% for category_name, items in service_groups %}
       <div class="mb-4 pb-3 border-bottom">
-        <!-- Título de la categoría, más grande y destacado -->
-        <h3 class="mb-3"
-            style="color:#ff8da1;font-weight:800;font-size:1.25rem;">
+        <h3 class="mb-3" style="color:#ff8da1;font-weight:800;font-size:1.25rem;">
           {{ category_name }}
         </h3>
 
@@ -264,7 +263,6 @@
           {% if t.photos.all %}
             <div class="row g-3 mt-2">
               {% for p in t.photos.all %}
-                <!-- FOTO ANTES -->
                 <div class="col-12 col-md-6">
                   <div class="ratio ratio-16x9 testimonial-frame border rounded overflow-hidden">
                     <img
@@ -275,7 +273,6 @@
                 </div>
 
                 {% if p.after_image %}
-                <!-- FOTO DESPUÉS -->
                 <div class="col-12 col-md-6">
                   <div class="ratio ratio-16x9 testimonial-frame border rounded overflow-hidden">
                     <img
@@ -346,10 +343,9 @@
          class="container py-5 toggle-section d-none">
   <h2 class="mb-3" style="color:#ff8da1;font-weight:800;">Clientes VIP 💎</h2>
 
-  <!-- Formulario VIP -->
   <form method="post" class="mb-3">
     {% csrf_token %}
-    <input type="hidden" name="action" value="vip">  <!-- importante para initial_section -->
+    <input type="hidden" name="action" value="vip">
     <div class="row g-2 align-items-center">
       <div class="col-12 col-md-6 col-lg-4">
         <input type="text"
@@ -418,13 +414,12 @@
   <small>© Centro de Belleza &amp; Spa Nadira Fashion</small>
 </footer>
 
-<!-- Botón flotante de WhatsApp -->
+<!-- Botón flotante de WhatsApp (NO TOCADO) -->
 <a href="https://wa.me/50685742863?text=Hola%21%20Acabo%20de%20visitar%20tu%20p%C3%A1gina%20web%20y%20me%20gustar%C3%ADa%20pedirte%20m%C3%A1s%20informaci%C3%B3n."
    class="whatsapp-floating"
    target="_blank"
    rel="noopener"
    aria-label="Contactar por WhatsApp">
-  <!-- Logo oficial vía background, sin tocar estilos de la burbuja -->
   <span style="
       display:block;
       width: 70%;
@@ -439,7 +434,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
-<!-- JS 1: mostrar/ocultar secciones según clic + initial_section -->
+<!-- JS 1: mostrar/ocultar secciones según clic + initial_section (NO TOCADO) -->
 <script>
   document.addEventListener("DOMContentLoaded", function () {
     const sections = document.querySelectorAll(".toggle-section");
@@ -470,11 +465,10 @@
     if (initialSection) {
       showSection(initialSection);
     }
-    // else { showSection("reservar"); }
   });
 </script>
 
-<!-- JS 2: Cargar horas disponibles vía /api/available-times/ -->
+<!-- JS 2: Cargar horas disponibles vía /api/available-times/ (NO TOCADO) -->
 <script>
   document.addEventListener("DOMContentLoaded", function () {
     const dateInput   = document.getElementById("date-input");
