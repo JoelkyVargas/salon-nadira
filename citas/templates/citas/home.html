@@ -12,6 +12,64 @@
     section{scroll-margin-top:100px}
     .hero{padding:3rem 0}
 
+    /* ---------- HERO MENU (5 rectángulos + fondo) ---------- */
+    .hero-menu {
+      min-height: 260px;
+      background-size: cover;
+      background-position: center;
+      position: relative;
+    }
+
+    .hero-menu-fallback {
+      background: radial-gradient(circle at top, #ffd1dc, #ff8da1 40%, #f7f7fb 80%);
+    }
+
+    .hero-menu-overlay {
+      background: rgba(0,0,0,0.35);
+      width: 100%;
+      height: 100%;
+      padding: 2rem 0 3rem 0;
+    }
+
+    .hero-menu-card {
+      display: block;
+      padding: 1rem 0.75rem;
+      border-radius: 18px;
+      text-decoration: none;
+      background: rgba(255, 141, 161, 0.9);
+      color: #ffffff;
+      font-weight: 700;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.25);
+      backdrop-filter: blur(2px);
+      transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+    }
+
+    .hero-menu-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 14px 30px rgba(0,0,0,0.3);
+      background: rgba(255, 141, 161, 1);
+      color: #ffffff;
+    }
+
+    .hero-menu-title {
+      font-size: 0.95rem;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+    }
+
+    /* 💻 Ajuste solo para pantallas tipo compu / tablet horizontal */
+    @media (min-width: 768px) {
+      .hero-menu {
+        min-height: 420px;              /* más alto en escritorio */
+        background-position: center center;
+      }
+
+      .hero-menu-overlay {
+        padding-top: 3.5rem;
+        padding-bottom: 4rem;
+      }
+    }
+
     /* ---------- Botón flotante de WhatsApp ---------- */
     .whatsapp-floating {
       position: fixed;
@@ -29,12 +87,22 @@
       text-decoration: none;
     }
 
+    .whatsapp-floating span {
+      color: #ffffff;
+      font-weight: 700;
+      font-size: 1.4rem;
+      line-height: 1;
+    }
+
     @media (max-width: 576px) {
       .whatsapp-floating {
         bottom: 12px;
         right: 12px;
         width: 52px;
         height: 52px;
+      }
+      .whatsapp-floating span {
+        font-size: 1.3rem;
       }
     }
   </style>
@@ -118,7 +186,7 @@
         {% endif %}
         <form method="post">
           {% csrf_token %}
-          <input type="hidden" name="action" value="booking">
+          <input type="hidden" name="action" value="booking">  <!-- importante para la vista -->
           <div class="mb-3">
             <label class="form-label">Nombre</label>
             {{ form.customer_name }}
@@ -157,7 +225,9 @@
   {% if service_groups %}
     {% for category_name, items in service_groups %}
       <div class="mb-4 pb-3 border-bottom">
-        <h3 class="mb-3" style="color:#ff8da1;font-weight:800;font-size:1.25rem;">
+        <!-- Título de la categoría, más grande y destacado -->
+        <h3 class="mb-3"
+            style="color:#ff8da1;font-weight:800;font-size:1.25rem;">
           {{ category_name }}
         </h3>
 
@@ -194,20 +264,24 @@
           {% if t.photos.all %}
             <div class="row g-3 mt-2">
               {% for p in t.photos.all %}
+                <!-- FOTO ANTES -->
                 <div class="col-12 col-md-6">
                   <div class="ratio ratio-16x9 testimonial-frame border rounded overflow-hidden">
-                    <img src="{{ p.before_image.url }}"
-                         class="w-100 h-100 object-fit-contain testimonial-img"
-                         alt="Antes">
+                    <img
+                      src="{{ p.before_image.url }}"
+                      class="w-100 h-100 object-fit-contain testimonial-img"
+                      alt="Antes">
                   </div>
                 </div>
 
                 {% if p.after_image %}
+                <!-- FOTO DESPUÉS -->
                 <div class="col-12 col-md-6">
                   <div class="ratio ratio-16x9 testimonial-frame border rounded overflow-hidden">
-                    <img src="{{ p.after_image.url }}"
-                         class="w-100 h-100 object-fit-contain testimonial-img"
-                         alt="Después">
+                    <img
+                      src="{{ p.after_image.url }}"
+                      class="w-100 h-100 object-fit-contain testimonial-img"
+                      alt="Después">
                   </div>
                 </div>
                 {% endif %}
@@ -272,9 +346,10 @@
          class="container py-5 toggle-section d-none">
   <h2 class="mb-3" style="color:#ff8da1;font-weight:800;">Clientes VIP 💎</h2>
 
+  <!-- Formulario VIP -->
   <form method="post" class="mb-3">
     {% csrf_token %}
-    <input type="hidden" name="action" value="vip">
+    <input type="hidden" name="action" value="vip">  <!-- importante para initial_section -->
     <div class="row g-2 align-items-center">
       <div class="col-12 col-md-6 col-lg-4">
         <input type="text"
@@ -343,11 +418,13 @@
   <small>© Centro de Belleza &amp; Spa Nadira Fashion</small>
 </footer>
 
+<!-- Botón flotante de WhatsApp -->
 <a href="https://wa.me/50685742863?text=Hola%21%20Acabo%20de%20visitar%20tu%20p%C3%A1gina%20web%20y%20me%20gustar%C3%ADa%20pedirte%20m%C3%A1s%20informaci%C3%B3n."
    class="whatsapp-floating"
    target="_blank"
    rel="noopener"
    aria-label="Contactar por WhatsApp">
+  <!-- Logo oficial vía background, sin tocar estilos de la burbuja -->
   <span style="
       display:block;
       width: 70%;
@@ -362,6 +439,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
+<!-- JS 1: mostrar/ocultar secciones según clic + initial_section -->
 <script>
   document.addEventListener("DOMContentLoaded", function () {
     const sections = document.querySelectorAll(".toggle-section");
@@ -392,9 +470,11 @@
     if (initialSection) {
       showSection(initialSection);
     }
+    // else { showSection("reservar"); }
   });
 </script>
 
+<!-- JS 2: Cargar horas disponibles vía /api/available-times/ -->
 <script>
   document.addEventListener("DOMContentLoaded", function () {
     const dateInput   = document.getElementById("date-input");

@@ -2,17 +2,19 @@
    🔒 REGLAS GENERALES (ANTI-CORTES)
    =========================================== */
 
+/* Evita que cualquier texto, especialmente el título, se rompa en varias líneas */
 html, body, h1, .page-title {
-  word-break: normal !important;
-  overflow-wrap: normal !important;
-  white-space: nowrap !important;
-  hyphens: none !important;
+  word-break: normal !important;     /* No cortar dentro de palabras */
+  overflow-wrap: normal !important;  /* No insertar saltos */
+  white-space: nowrap !important;    /* Mantener en una sola línea */
+  hyphens: none !important;          /* Sin guiones automáticos */
 }
 
+/* Permite que el título pase a dos líneas en pantallas muy pequeñas */
 @media (max-width: 380px) {
   .page-title {
-    white-space: normal !important;
-    text-wrap: balance;
+    white-space: normal !important; /* Permite salto natural */
+    text-wrap: balance;             /* Ajuste visual más armónico */
   }
 }
 
@@ -20,13 +22,15 @@ html, body, h1, .page-title {
    🎨 ESTILOS GENERALES
    =========================================== */
 
+/* Contenedor del formulario */
 .form-wrap {
-  max-width: 720px;
-  min-width: 320px;
-  margin: 40px auto;
-  overflow-x: auto;
+  max-width: 720px;   /* Ancho cómodo en escritorio */
+  min-width: 320px;   /* Nunca más estrecho de 320px */
+  margin: 40px auto;  /* Centrado con espacio vertical */
+  overflow-x: auto;   /* Scroll horizontal si no cabe */
 }
 
+/* Tarjeta del formulario */
 .card {
   padding: 20px;
   border-radius: 12px;
@@ -34,14 +38,20 @@ html, body, h1, .page-title {
   background: #fff;
 }
 
+/* ===========================================
+   🎯 TÍTULO
+   =========================================== */
 .page-title {
-  font-size: clamp(2rem, 4vw, 2.75rem);
-  font-weight: 800;
-  color: #ff8da1;
-  text-align: center;
-  margin-bottom: 20px;
+  font-size: clamp(2rem, 4vw, 2.75rem); /* Tamaño fluido según ancho de pantalla */
+  font-weight: 800;                     /* Texto grueso */
+  color: #ff8da1;                       /* Rosado más oscuro */
+  text-align: center;                   /* Centrado */
+  margin-bottom: 20px;                  /* Espaciado inferior */
 }
 
+/* ===========================================
+   📌 CAMPOS DEL FORMULARIO
+   =========================================== */
 input, select {
   font-size: 1rem;
   padding: 10px;
@@ -51,106 +61,30 @@ input, select {
   margin-bottom: 10px;
 }
 
+/* ===========================================
+   🔘 BOTONES
+   =========================================== */
 .btn-primary {
-  background-color: #ff8da1;
+  background-color: #ff8da1; /* Rosado oscuro */
   border-color: #ff8da1;
-  color: #fff;
+  color: #fff;               /* Texto blanco */
   font-size: 1.2rem;
   font-weight: bold;
   padding: 12px;
 }
 
 .btn-primary:hover {
-  background-color: #ff7b9c;
+  background-color: #ff7b9c; /* Más oscuro al pasar el mouse */
   border-color: #ff7b9c;
 }
 
+/* ===========================================
+   ✅ MENSAJE DE ÉXITO
+   =========================================== */
 .alert-success {
-  background-color: #ffe6eb;
-  color: #b84a62;
+  background-color: #ffe6eb; /* Fondo rosado muy claro */
+  color: #b84a62;           /* Texto rosado oscuro */
   border-color: #ff8da1;
   font-weight: bold;
   text-align: center;
-}
-
-/* ===========================================
-   HERO MENU (imagen + 5 botones)
-   =========================================== */
-
-.hero-menu {
-  width: 100%;
-  position: relative;
-  background-size: cover;
-  background-position: center;
-  overflow: hidden;
-  aspect-ratio: 1 / 1;
-  min-height: 320px;
-}
-
-.hero-menu-fallback {
-  background: radial-gradient(circle at top, #ffd1dc, #ff8da1 40%, #f7f7fb 80%);
-}
-
-.hero-menu-overlay {
-  background: rgba(0,0,0,0.35);
-  width: 100%;
-  height: 100%;
-  padding: 2rem 0 3rem 0;
-  display: flex;
-  align-items: center;
-}
-
-.hero-menu-card {
-  display: block;
-  padding: 1rem 0.75rem;
-  border-radius: 18px;
-  text-decoration: none;
-  background: rgba(255, 141, 161, 0.9);
-  color: #ffffff;
-  font-weight: 700;
-  box-shadow: 0 10px 25px rgba(0,0,0,0.25);
-  backdrop-filter: blur(2px);
-  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
-}
-
-.hero-menu-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 14px 30px rgba(0,0,0,0.3);
-  background: rgba(255, 141, 161, 1);
-  color: #ffffff;
-}
-
-.hero-menu-title {
-  font-size: 0.95rem;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
-}
-
-/* iPad / tablet */
-@media (min-width: 768px) {
-  .hero-menu {
-    aspect-ratio: 4 / 3;
-    min-height: 420px;
-  }
-
-  .hero-menu-overlay {
-    padding-top: 3.5rem;
-    padding-bottom: 4rem;
-  }
-}
-
-/* Desktop */
-@media (min-width: 1200px) {
-  .hero-menu {
-    aspect-ratio: 16 / 9;
-    min-height: 520px;
-  }
-}
-
-/* Muy ancho */
-@media (min-width: 1600px) {
-  .hero-menu {
-    aspect-ratio: 3 / 1;
-    min-height: 560px;
-  }
 }
